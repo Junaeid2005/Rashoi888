@@ -120,7 +120,7 @@ export interface Order {
   discount: number;
   totalAmount: number;
   currency: 'GBP';
-  paymentProvider: 'stripe';
+  paymentProvider: 'stripe' | 'cash' | 'collection';
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
   stripeCheckoutSessionId?: string | null;

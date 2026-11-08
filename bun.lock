@@ -6,6 +6,7 @@
       "name": "react-example",
       "dependencies": {
         "@google/genai": "^2.4.0",
+        "@stripe/stripe-js": "^10.2.1",
         "@tailwindcss/vite": "^4.3.3",
         "@vitejs/plugin-react": "^6.1.1",
         "dotenv": "^17.2.3",
@@ -279,6 +280,8 @@
     "@rolldown/binding-win32-x64-msvc": ["@rolldown/binding-win32-x64-msvc@1.2.16", "", { "os": "win32", "cpu": "x64" }, "sha512-1lv1KvX0Z871zfk7vw+dnXMMnHNyDwMzWG8Kv3HxDXMOhzCX4SHc7HK319fInP0i+0p9D8brkfzL7pJOaGl+tw=="],
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
+
+    "@stripe/stripe-js": ["@stripe/stripe-js@10.2.1", "", {}, "sha512-diHeR1/FeWZZzuFXEvkjRMzydgKEpxUTrKEUxSV8NcpeZY3Kl8C4Gerw/JSMK+3oXsBRJtgkG7ckviQJ651moA=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.3.5", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.24.5", "jiti": "^2.7.0", "lightningcss": "1.33.0", "magic-string": "^1.1.0", "source-map-js": "^1.2.1", "tailwindcss": "4.3.5" } }, "sha512-yT53FzV4ke0cr/BguDxhWMpm5MJu1O2muzk+tKw6lKHjODAsYArBbWwFbJiaksfzFv1tpkO9QHGzmfs1hJT66g=="],
 

@@ -3,6 +3,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { createOrder } from '../../services/dbService';
 import { Order } from '../../types';
+import { isStripeOnlinePaymentActive, createStripeCheckout } from '../../services/stripeService';
 import {
   X,
   Trash2,
@@ -39,12 +40,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
   const [customerEmail, setCustomerEmail] = useState(user?.email || '');
   const [customerPhone, setCustomerPhone] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'collection' | 'stripe'>('collection');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const stripeActive = isStripeOnlinePaymentActive();
+
   if (!isCartOpen) return null;
 
-  const handlePlaceCollectionOrder = async (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -61,7 +65,41 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
     setSubmitting(true);
     try {
       const orderNumber = 'RSH-' + Math.floor(100000 + Math.random() * 900000);
-      
+
+      // If user selected Stripe and Stripe is configured in environment
+      if (paymentMethod === 'stripe' && stripeActive) {
+        await createOrder({
+          orderId: orderNumber,
+          customerId: user?.uid,
+          customerName: customerName.trim(),
+          customerEmail: customerEmail.trim(),
+          customerPhone: customerPhone.trim(),
+          orderType: 'collection',
+          items,
+          subtotal,
+          discount,
+          totalAmount: total,
+          currency: 'GBP',
+          paymentProvider: 'stripe',
+          specialInstructions: specialInstructions.trim() || undefined,
+        });
+
+        const { checkoutUrl } = await createStripeCheckout({
+          orderId: orderNumber,
+          customerName: customerName.trim(),
+          customerEmail: customerEmail.trim(),
+          customerPhone: customerPhone.trim(),
+          items,
+          totalAmount: total,
+          discount,
+          subtotal,
+        });
+
+        window.location.href = checkoutUrl;
+        return;
+      }
+
+      // Default: Pay upon Collection
       const newOrder = await createOrder({
         orderId: orderNumber,
         customerId: user?.uid,
@@ -74,7 +112,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
         discount,
         totalAmount: total,
         currency: 'GBP',
-        paymentProvider: 'stripe',
+        paymentProvider: 'cash',
         specialInstructions: specialInstructions.trim() || undefined,
       });
 
@@ -83,7 +121,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
       setIsCartOpen(false);
       onOrderSuccess(newOrder);
     } catch (err: any) {
-      setFormError(err.message || 'Failed to place collection order. Please try again.');
+      setFormError(err.message || 'Failed to place order. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -183,7 +221,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
             </div>
           ) : (
             /* Checkout Form */
-            <form id="checkout-form" onSubmit={handlePlaceCollectionOrder} className="space-y-4 text-left">
+            <form id="checkout-form" onSubmit={handlePlaceOrder} className="space-y-4 text-left">
               
               {formError && (
                 <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-500/50 text-red-200 text-xs flex items-center space-x-2">
@@ -266,36 +304,71 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
               </div>
 
               {/* PAYMENT SECTION */}
-              <div className="pt-2 border-t border-[#A51C30]/20">
-                <p className="text-xs uppercase tracking-wider text-[#FFFFFF] font-semibold mb-2">
+              <div className="pt-2 border-t border-[#A51C30]/20 space-y-3">
+                <p className="text-xs uppercase tracking-wider text-[#FFFFFF] font-semibold">
                   Select Payment Method
                 </p>
 
-                {/* DISABLED ONLINE PAYMENT BUTTON PER STRICT REQUIREMENT */}
-                <div className="p-3.5 rounded-xl border border-[#3A2A30] bg-[#161013] space-y-2 opacity-80 mb-3">
+                {/* 1. Pay Online via Card / Apple Pay (Stripe) */}
+                <div
+                  onClick={() => {
+                    if (stripeActive) setPaymentMethod('stripe');
+                  }}
+                  className={`p-3.5 rounded-xl border transition-all ${
+                    stripeActive
+                      ? paymentMethod === 'stripe'
+                        ? 'border-[#E23D5B] bg-[#2A1720] shadow-md cursor-pointer'
+                        : 'border-[#A51C30]/40 bg-[#1A1418] hover:border-[#E23D5B]/60 cursor-pointer'
+                      : 'border-[#3A2A30] bg-[#161013] opacity-80 cursor-not-allowed'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <CreditCard className="w-4 h-4 text-[#ABA29B]" />
-                      <span className="text-xs font-semibold text-[#ABA29B]">Pay Online with Stripe (Card)</span>
+                    <div className="flex items-center space-x-2.5">
+                      <CreditCard className={`w-4 h-4 ${stripeActive ? 'text-[#E23D5B]' : 'text-[#858078]'}`} />
+                      <span className={`text-xs font-semibold ${stripeActive ? 'text-white' : 'text-[#B8B1A7]'}`}>
+                        Pay Online with Card / Apple Pay (Stripe)
+                      </span>
                     </div>
-                    <span className="text-[10px] bg-[#291F24] text-[#ABA29B] px-2 py-0.5 rounded">
-                      Disabled
-                    </span>
+                    {stripeActive ? (
+                      <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-[#291F24] text-amber-300/90 px-2.5 py-0.5 rounded-full border border-amber-400/30 font-bold uppercase tracking-wider">
+                        Coming Soon
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[11px] text-amber-400/90 italic">
-                    "Online payment is coming soon. Please check back later."
+                  <p className="text-[11px] text-[#A59E98] mt-1.5 leading-relaxed">
+                    {stripeActive
+                      ? 'Secure online card payment & Apple Pay powered by Stripe.'
+                      : 'Online payment is coming soon. Please choose Pay upon Collection.'}
                   </p>
                 </div>
 
-                {/* ENABLED: Pay on Collection */}
-                <div className="p-3.5 rounded-xl border border-[#A51C30]/50 bg-[#1F181C] flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Building className="w-4 h-4 text-[#E23D5B]" />
-                    <span className="text-xs font-semibold text-[#FFFFFF]">Pay upon Collection (Cash or Card at Counter)</span>
+                {/* 2. Pay on Collection (Active Default) */}
+                <div
+                  onClick={() => setPaymentMethod('collection')}
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    paymentMethod === 'collection'
+                      ? 'border-[#E23D5B] bg-[#2A1720] shadow-md'
+                      : 'border-[#A51C30]/40 bg-[#1A1418] hover:border-[#E23D5B]/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2.5">
+                      <Building className="w-4 h-4 text-[#E23D5B]" />
+                      <span className="text-xs font-semibold text-[#FFFFFF]">
+                        Pay upon Collection (Cash or Card at Counter)
+                      </span>
+                    </div>
+                    <span className="text-[10px] bg-[#800020]/40 text-[#E23D5B] px-2.5 py-1 rounded-full font-mono border border-[#A51C30]/40 font-bold">
+                      Available
+                    </span>
                   </div>
-                  <span className="text-[10px] bg-[#800020]/30 text-[#E23D5B] px-2.5 py-1 rounded-full font-mono border border-[#A51C30]/40 font-bold">
-                    Available
-                  </span>
+                  <p className="text-[11px] text-[#A59E98] mt-1.5 leading-relaxed">
+                    Collect in person at 58 Updown Hill, Windlesham, Surrey. Pay by card or cash at the counter.
+                  </p>
                 </div>
               </div>
 
