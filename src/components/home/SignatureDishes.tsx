@@ -1,6 +1,7 @@
 import React from 'react';
 import { MenuItem } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { getDishVisualMeta } from '../../utils/menuImageResolver';
 import { Plus, Leaf, Sparkles, ArrowRight } from 'lucide-react';
 
@@ -11,6 +12,7 @@ interface SignatureDishesProps {
 
 export const SignatureDishes: React.FC<SignatureDishesProps> = ({ dishes, onViewMenu }) => {
   const { addItem } = useCart();
+  const { isAdmin } = useAuth();
 
   // Pick signature featured dishes
   const featured = dishes.filter((d) => d.isFeatured || d.isChefsSpecial).slice(0, 6);
@@ -99,20 +101,30 @@ export const SignatureDishes: React.FC<SignatureDishesProps> = ({ dishes, onView
 
                 {/* Card Action */}
                 <div className="px-6 pb-6 pt-2">
-                  <button
-                    onClick={() =>
-                      addItem({
-                        menuItemId: dish.id,
-                        name: dish.name,
-                        categoryName: dish.categoryName,
-                        price: dish.price,
-                      })
-                    }
-                    className="w-full py-2.5 px-4 bg-[#800020] hover:bg-[#9B1130] text-[#FFFFFF] rounded-xl text-xs tracking-wider uppercase font-semibold transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add to Order</span>
-                  </button>
+                  {!isAdmin ? (
+                    <button
+                      onClick={() =>
+                        addItem({
+                          menuItemId: dish.id,
+                          name: dish.name,
+                          categoryName: dish.categoryName,
+                          price: dish.price,
+                        })
+                      }
+                      className="w-full py-2.5 px-4 bg-[#800020] hover:bg-[#9B1130] text-[#FFFFFF] rounded-xl text-xs tracking-wider uppercase font-semibold transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add to Order</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={onViewMenu}
+                      className="w-full py-2.5 px-4 bg-[#161013] border border-[#A51C30]/40 text-[#D4CDC5] hover:text-white rounded-xl text-xs font-medium transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+                    >
+                      <span>Preview in Menu</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[#E23D5B]" />
+                    </button>
+                  )}
                 </div>
               </div>
             );

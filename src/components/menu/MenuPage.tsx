@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { MenuCategory, MenuItem } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { getDishVisualMeta, DishVisualMeta } from '../../utils/menuImageResolver';
 import {
   Plus,
@@ -27,6 +28,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
   menuItems,
 }) => {
   const { addItem, items: cartItems, updateQuantity } = useCart();
+  const { isAdmin } = useAuth();
 
   // Search & Navigation
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
@@ -377,7 +379,15 @@ export const MenuPage: React.FC<MenuPageProps> = ({
 
                       {/* Bottom Direct Order Action */}
                       <div className="mt-5 pt-3.5 border-t border-[#222222] flex items-center justify-between gap-3">
-                        {cartQty > 0 ? (
+                        {isAdmin ? (
+                          <button
+                            onClick={() => setSelectedDish({ item, meta: item.visualMeta })}
+                            className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer bg-[#1A1A1A] hover:bg-[#252525] text-[#D4CDC5] hover:text-white border border-[#333333]"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-[#E23D5B]" />
+                            <span>View Recipe & Details</span>
+                          </button>
+                        ) : cartQty > 0 ? (
                           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-[#800020]/50 bg-[#1A1A1A] w-full justify-between">
                             <span className="text-xs font-mono font-semibold text-white">
                               In Order: {cartQty}
@@ -484,43 +494,51 @@ export const MenuPage: React.FC<MenuPageProps> = ({
 
               {/* Quantity Stepper & Add to Cart */}
               <div className="pt-4 flex items-center justify-between gap-4">
-                <div className="flex items-center space-x-3 px-3 py-1.5 rounded-xl border border-[#800020]/30 bg-[#1A1A1A]">
-                  <button
-                    onClick={() => setModalQuantity(Math.max(1, modalQuantity - 1))}
-                    className="p-1 rounded hover:bg-white/10 cursor-pointer"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="font-mono font-bold text-sm min-w-6 text-center">
-                    {modalQuantity}
-                  </span>
-                  <button
-                    onClick={() => setModalQuantity(modalQuantity + 1)}
-                    className="p-1 rounded hover:bg-white/10 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
+                {isAdmin ? (
+                  <div className="w-full py-3 px-4 rounded-xl border border-[#A51C30]/40 bg-[#1A1418] text-center text-xs text-[#E2DDD7]">
+                    <span className="font-semibold text-white">Administrator Preview Mode:</span> Food ordering and checkout are disabled for admin accounts.
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-3 px-3 py-1.5 rounded-xl border border-[#800020]/30 bg-[#1A1A1A]">
+                      <button
+                        onClick={() => setModalQuantity(Math.max(1, modalQuantity - 1))}
+                        className="p-1 rounded hover:bg-white/10 cursor-pointer"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="font-mono font-bold text-sm min-w-6 text-center">
+                        {modalQuantity}
+                      </span>
+                      <button
+                        onClick={() => setModalQuantity(modalQuantity + 1)}
+                        className="p-1 rounded hover:bg-white/10 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
 
-                <button
-                  onClick={() => {
-                    handleAddDish(
-                      selectedDish.item.name,
-                      selectedDish.item.price,
-                      selectedDish.item.categoryName,
-                      modalQuantity
-                    );
-                    setSelectedDish(null);
-                    setModalQuantity(1);
-                  }}
-                  className="flex-1 py-3 px-6 rounded-xl font-semibold text-xs tracking-widest uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-lg bg-[#800020] hover:bg-[#9B1130] text-white"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>
-                    Add to Order • £
-                    {(selectedDish.item.price * modalQuantity).toFixed(2)}
-                  </span>
-                </button>
+                    <button
+                      onClick={() => {
+                        handleAddDish(
+                          selectedDish.item.name,
+                          selectedDish.item.price,
+                          selectedDish.item.categoryName,
+                          modalQuantity
+                        );
+                        setSelectedDish(null);
+                        setModalQuantity(1);
+                      }}
+                      className="flex-1 py-3 px-6 rounded-xl font-semibold text-xs tracking-widest uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-lg bg-[#800020] hover:bg-[#9B1130] text-white"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>
+                        Add to Order • £
+                        {(selectedDish.item.price * modalQuantity).toFixed(2)}
+                      </span>
+                    </button>
+                  </>
+                )}
               </div>
 
             </div>

@@ -194,6 +194,10 @@ function MainApp() {
                 setCurrentView('menu');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
+              onGoToAdmin={() => {
+                setCurrentView('admin');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
             <Introduction settings={homepageSettings} />
             <SignatureDishes
@@ -213,7 +217,12 @@ function MainApp() {
               }}
             />
             <CustomerReviews reviews={reviews} />
-            <ReservationSection />
+            <ReservationSection
+              onGoToAdmin={() => {
+                setCurrentView('admin');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
             <LocationSection info={restaurantInfo} />
           </>
         )}

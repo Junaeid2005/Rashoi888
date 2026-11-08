@@ -1,19 +1,23 @@
 import React from 'react';
 import { HomepageSettings } from '../../types';
-import { ArrowRight, Sparkles, MapPin, Utensils } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { ArrowRight, Sparkles, MapPin, Utensils, ShieldAlert } from 'lucide-react';
 import { resolveAssetUrl } from '../../utils/imagePath';
 
 interface HeroProps {
   settings: HomepageSettings;
   onBookTable: () => void;
   onExploreMenu: () => void;
+  onGoToAdmin?: () => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({
   settings,
   onBookTable,
   onExploreMenu,
+  onGoToAdmin,
 }) => {
+  const { isAdmin } = useAuth();
   return (
     <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-[#120E10] pt-28 pb-16">
       
@@ -61,24 +65,46 @@ export const Hero: React.FC<HeroProps> = ({
 
             {/* CTAs */}
             <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-5">
-              <button
-                onClick={onBookTable}
-                className="nav-burgundy-btn px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-xl"
-              >
-                <span>{settings.heroPrimaryBtnText || 'Book a Table'}</span>
-                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-transform" />
-              </button>
+              {isAdmin ? (
+                <>
+                  <button
+                    onClick={onGoToAdmin || onExploreMenu}
+                    className="nav-burgundy-btn px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-xl"
+                  >
+                    <ShieldAlert className="w-4 h-4 text-[#F5B8C3]" />
+                    <span>Go to Admin Dashboard</span>
+                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-transform" />
+                  </button>
 
-              <button
-                onClick={onExploreMenu}
-                className="px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center cursor-pointer bg-[#20181D]/80 hover:bg-[#2C2128] text-[#FFFFFF] border border-[#A51C30]/50 shadow-md backdrop-blur-sm"
-              >
-                <span>
-                  {settings.heroSecondaryBtnText === 'Explore Our Menu'
-                    ? 'Explore Menu & Order'
-                    : (settings.heroSecondaryBtnText || 'Explore Menu & Order')}
-                </span>
-              </button>
+                  <button
+                    onClick={onExploreMenu}
+                    className="px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center cursor-pointer bg-[#20181D]/80 hover:bg-[#2C2128] text-[#FFFFFF] border border-[#A51C30]/50 shadow-md backdrop-blur-sm"
+                  >
+                    <span>Preview Menu</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={onBookTable}
+                    className="nav-burgundy-btn px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-xl"
+                  >
+                    <span>{settings.heroPrimaryBtnText || 'Book a Table'}</span>
+                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-transform" />
+                  </button>
+
+                  <button
+                    onClick={onExploreMenu}
+                    className="px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center cursor-pointer bg-[#20181D]/80 hover:bg-[#2C2128] text-[#FFFFFF] border border-[#A51C30]/50 shadow-md backdrop-blur-sm"
+                  >
+                    <span>
+                      {settings.heroSecondaryBtnText === 'Explore Our Menu'
+                        ? 'Explore Menu & Order'
+                        : (settings.heroSecondaryBtnText || 'Explore Menu & Order')}
+                    </span>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Address & Quick Info Banner */}

@@ -103,19 +103,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Right Action Icons & Buttons */}
           <div className="flex items-center space-x-3 sm:space-x-4">
             
-            {/* Cart Trigger */}
-            <button
-              onClick={() => setIsCartOpen(true)}
-              aria-label="View Cart"
-              className="relative p-2.5 transition-colors rounded-full border border-[#800020]/30 bg-[#121212] hover:bg-[#1a1a1a] text-[#FFFFFF] cursor-pointer shadow-sm"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center bg-[#800020] text-white shadow animate-pulse">
-                  {itemCount}
-                </span>
-              )}
-            </button>
+            {/* Cart Trigger - Hidden for Administrators */}
+            {!isAdmin && (
+              <button
+                onClick={() => setIsCartOpen(true)}
+                aria-label="View Cart"
+                className="relative p-2.5 transition-colors rounded-full border border-[#800020]/30 bg-[#121212] hover:bg-[#1a1a1a] text-[#FFFFFF] cursor-pointer shadow-sm"
+              >
+                <ShoppingBag className="w-5 h-5" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center bg-[#800020] text-white shadow animate-pulse">
+                    {itemCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* User Account / Google Sign-in */}
             <div className="relative">
@@ -144,31 +146,34 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {userDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[#121212] border border-[#800020]/35 shadow-2xl py-2 z-50">
                       <div className="px-4 py-2 border-b border-[#222222]">
-                        <p className="text-[10px] uppercase tracking-wider text-[#9E9790] font-mono">Signed in as</p>
+                        <p className="text-[10px] uppercase tracking-wider text-[#9E9790] font-mono">
+                          {isAdmin ? 'Signed in as Admin' : 'Signed in as'}
+                        </p>
                         <p className="text-sm font-semibold text-[#FFFFFF] truncate">{user.displayName || user.email}</p>
                       </div>
 
-                      <button
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          onOpenUserModal();
-                        }}
-                        className="w-full text-left px-4 py-2.5 text-xs text-[#D4CDC5] hover:bg-[#1c1c1c] hover:text-[#FFFFFF] flex items-center space-x-2 cursor-pointer transition-colors"
-                      >
-                        <CalendarCheck className="w-4 h-4 text-[#A51C30]" />
-                        <span>My Bookings & Orders</span>
-                      </button>
-
-                      {isAdmin && (
+                      {isAdmin ? (
                         <button
                           onClick={() => {
                             setUserDropdownOpen(false);
                             setCurrentView('admin');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
                           className="w-full text-left px-4 py-2.5 text-xs text-[#F5B8C3] hover:bg-[#1c1c1c] flex items-center space-x-2 font-medium cursor-pointer transition-colors"
                         >
                           <ShieldAlert className="w-4 h-4 text-[#A51C30]" />
                           <span>Admin Dashboard</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setUserDropdownOpen(false);
+                            onOpenUserModal();
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-xs text-[#D4CDC5] hover:bg-[#1c1c1c] hover:text-[#FFFFFF] flex items-center space-x-2 cursor-pointer transition-colors"
+                        >
+                          <CalendarCheck className="w-4 h-4 text-[#A51C30]" />
+                          <span>My Bookings & Orders</span>
                         </button>
                       )}
 
@@ -196,13 +201,27 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* Book a Table Primary Button in Royal Burgundy */}
-            <button
-              onClick={onOpenBooking}
-              className="nav-burgundy-btn px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-xs tracking-widest uppercase font-sans cursor-pointer transition-all duration-200"
-            >
-              Book a Table
-            </button>
+            {/* Action CTA: Admin Dashboard for Admin, Book a Table for Patrons */}
+            {isAdmin ? (
+              <button
+                onClick={() => {
+                  setCurrentView('admin');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-lg font-semibold text-xs tracking-wider uppercase font-sans cursor-pointer transition-all duration-200 bg-[#800020] hover:bg-[#9B1130] text-white flex items-center space-x-1.5 shadow-md border border-[#A51C30]/50"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-[#F5B8C3]" />
+                <span className="hidden sm:inline">Admin Dashboard</span>
+                <span className="sm:hidden">Admin</span>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenBooking}
+                className="nav-burgundy-btn px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg font-semibold text-xs sm:text-xs tracking-widest uppercase font-sans cursor-pointer transition-all duration-200"
+              >
+                Book a Table
+              </button>
+            )}
 
             {/* Mobile Hamburger Toggle */}
             <button
@@ -303,15 +322,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               )}
 
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onOpenBooking();
-                }}
-                className="w-full py-3.5 nav-burgundy-btn font-semibold text-xs tracking-widest uppercase rounded-lg shadow-lg text-white"
-              >
-                Book a Table
-              </button>
+              {isAdmin ? (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setCurrentView('admin');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="w-full py-3.5 bg-[#800020] hover:bg-[#9B1130] font-semibold text-xs tracking-widest uppercase rounded-lg shadow-lg text-white flex items-center justify-center space-x-2 border border-[#A51C30]/50"
+                >
+                  <ShieldAlert className="w-4 h-4 text-[#F5B8C3]" />
+                  <span>Go to Admin Dashboard</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenBooking();
+                  }}
+                  className="w-full py-3.5 nav-burgundy-btn font-semibold text-xs tracking-widest uppercase rounded-lg shadow-lg text-white"
+                >
+                  Book a Table
+                </button>
+              )}
             </div>
           </div>
         </div>

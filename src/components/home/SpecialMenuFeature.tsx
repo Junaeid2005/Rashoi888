@@ -1,5 +1,6 @@
 import React from 'react';
 import { HomepageSettings } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import { Calendar, ArrowRight, Check } from 'lucide-react';
 import { resolveAssetUrl } from '../../utils/imagePath';
 
@@ -14,6 +15,7 @@ export const SpecialMenuFeature: React.FC<SpecialMenuFeatureProps> = ({
   onBookTable,
   onViewMenu,
 }) => {
+  const { isAdmin } = useAuth();
   return (
     <section className="py-24 bg-[#120E10] relative overflow-hidden">
       
@@ -73,13 +75,15 @@ export const SpecialMenuFeature: React.FC<SpecialMenuFeatureProps> = ({
               </div>
 
               <div className="pt-4 flex flex-wrap gap-4">
-                <button
-                  onClick={onBookTable}
-                  className="nav-burgundy-btn px-7 py-3.5 font-semibold text-xs tracking-widest uppercase rounded-xl shadow-lg flex items-center space-x-2 cursor-pointer"
-                >
-                  <span>Book for Sunday</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                {!isAdmin && (
+                  <button
+                    onClick={onBookTable}
+                    className="nav-burgundy-btn px-7 py-3.5 font-semibold text-xs tracking-widest uppercase rounded-xl shadow-lg flex items-center space-x-2 cursor-pointer"
+                  >
+                    <span>Book for Sunday</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   onClick={onViewMenu}
                   className="px-7 py-3.5 border border-[#A51C30]/50 bg-[#291F24]/60 hover:bg-[#291F24] text-[#FFFFFF] text-xs tracking-widest uppercase font-semibold rounded-xl transition-all cursor-pointer shadow"

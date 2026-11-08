@@ -1,5 +1,6 @@
 import React from 'react';
 import { RestaurantInfo } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import { MapPin, Phone, Mail, ArrowUp } from 'lucide-react';
 
 interface FooterProps {
@@ -9,6 +10,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ info, onNavigate, onOpenBooking }) => {
+  const { isAdmin } = useAuth();
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -104,12 +106,21 @@ export const Footer: React.FC<FooterProps> = ({ info, onNavigate, onOpenBooking 
                 </button>
               </li>
               <li>
-                <button
-                  onClick={onOpenBooking}
-                  className="text-[#E23D5B] hover:text-[#FFFFFF] transition-colors cursor-pointer font-semibold"
-                >
-                  Book a Table
-                </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() => onNavigate('admin')}
+                    className="text-[#E23D5B] hover:text-[#FFFFFF] transition-colors cursor-pointer font-semibold"
+                  >
+                    Admin Dashboard
+                  </button>
+                ) : (
+                  <button
+                    onClick={onOpenBooking}
+                    className="text-[#E23D5B] hover:text-[#FFFFFF] transition-colors cursor-pointer font-semibold"
+                  >
+                    Book a Table
+                  </button>
+                )}
               </li>
               <li>
                 <button
