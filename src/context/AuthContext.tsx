@@ -12,6 +12,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  authError: string | null;
+  clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -20,6 +22,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isAdmin: false,
+  authError: null,
+  clearAuthError: () => {},
   signInWithGoogle: async () => {},
   signOut: async () => {},
 });
@@ -33,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -78,12 +83,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
+  const clearAuthError = () => setAuthError(null);
+
   const signInWithGoogle = async () => {
+    setAuthError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Google Sign-in failed:', err);
-      throw err;
+      if (err.code === 'auth/unauthorized-domain') {
+        const currentDomain = window.location.hostname;
+        setAuthError(
+          `Domain "${currentDomain}" is not authorized in Firebase Console. Please add "${currentDomain}" to Firebase Console > Authentication > Settings > Authorized Domains.`
+        );
+      } else if (err.code === 'auth/popup-blocked') {
+        setAuthError('Sign-in popup was blocked by your browser. Please allow popups for this site.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setAuthError('Google Sign-In is not enabled. Please enable Google provider in Firebase Console > Authentication > Sign-in method.');
+      } else if (err.code !== 'auth/popup-closed-by-user') {
+        setAuthError(err.message || 'Google sign-in failed. Please try again.');
+      }
     }
   };
 
@@ -97,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, authError, clearAuthError, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -58,7 +58,7 @@ import {
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 function MainApp() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, authError, clearAuthError } = useAuth();
   const [currentView, setCurrentView] = useState<string>('home');
   const [categories, setCategories] = useState<MenuCategory[]>(INITIAL_CATEGORIES);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
@@ -275,6 +275,36 @@ function MainApp() {
         isOpen={userModalOpen}
         onClose={() => setUserModalOpen(false)}
       />
+
+      {/* Auth Error Notification Modal */}
+      {authError && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-2xl bg-[#1F181C] border border-[#A51C30] shadow-2xl p-6 text-white text-left space-y-4">
+            <div className="flex items-center space-x-3 text-[#E23D5B]">
+              <AlertCircle className="w-6 h-6 shrink-0" />
+              <h3 className="font-serif text-lg font-bold text-white">Sign In Assistance</h3>
+            </div>
+            
+            <p className="text-xs text-[#E2DDD7] leading-relaxed">
+              {authError}
+            </p>
+
+            <div className="p-3.5 rounded-xl bg-[#161013] border border-[#A51C30]/40 text-xs text-[#ABA29B] space-y-1.5">
+              <p className="font-semibold text-white">Quick Fix for Vercel / Custom Domain:</p>
+              <p>1. Open <a href="https://console.firebase.google.com/project/gen-lang-client-0919101230/authentication/settings" target="_blank" rel="noopener noreferrer" className="text-[#E23D5B] underline font-bold">Firebase Console &gt; Authentication &gt; Settings</a></p>
+              <p>2. Scroll down to <strong>Authorized domains</strong></p>
+              <p>3. Click <strong>Add domain</strong> and enter: <span className="font-mono text-white font-bold">{typeof window !== 'undefined' ? window.location.hostname : 'your-domain.vercel.app'}</span></p>
+            </div>
+
+            <button
+              onClick={clearAuthError}
+              className="w-full py-2.5 nav-burgundy-btn text-white font-semibold text-xs uppercase tracking-wider rounded-lg shadow-md cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
