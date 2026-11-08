@@ -1,6 +1,7 @@
 import React from 'react';
 import { HomepageSettings, RestaurantInfo } from '../../types';
 import { Sparkles, Utensils, Award } from 'lucide-react';
+import { resolveAssetUrl } from '../../utils/imagePath';
 
 interface AboutPageProps {
   settings: HomepageSettings;
@@ -72,7 +73,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
           <div className="lg:col-span-6">
             <div className="relative rounded-2xl overflow-hidden border border-[#A51C30]/35 shadow-2xl bg-[#1F181C]">
               <img
-                src={settings.introImageUrl || '/src/assets/images/rashoi_interior_dining_1794139799818.jpg'}
+                src={resolveAssetUrl(settings.introImageUrl, '/images/rashoi_interior_dining_1794139799818.jpg')}
                 alt="Rashoi Dining Room Atmosphere"
                 className="w-full h-[450px] object-cover object-center brightness-95"
               />

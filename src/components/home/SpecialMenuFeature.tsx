@@ -1,6 +1,7 @@
 import React from 'react';
 import { HomepageSettings } from '../../types';
 import { Calendar, ArrowRight, Check } from 'lucide-react';
+import { resolveAssetUrl } from '../../utils/imagePath';
 
 interface SpecialMenuFeatureProps {
   settings: HomepageSettings;
@@ -92,7 +93,7 @@ export const SpecialMenuFeature: React.FC<SpecialMenuFeatureProps> = ({
             {/* Right Large Food Photography */}
             <div className="lg:col-span-5 h-80 lg:h-full relative min-h-[380px]">
               <img
-                src={settings.specialFeatureImageUrl}
+                src={resolveAssetUrl(settings.specialFeatureImageUrl, '/images/rashoi_signature_dish_1794139812970.jpg')}
                 alt={settings.specialFeatureTitle}
                 className="w-full h-full object-cover object-center brightness-95 contrast-105"
               />

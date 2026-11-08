@@ -36,6 +36,7 @@ import {
   INITIAL_PAYMENT_SETTINGS,
   INITIAL_HOMEPAGE_SETTINGS
 } from '../data/initialData';
+import { resolveAssetUrl } from '../utils/imagePath';
 
 // Collection references
 const CATEGORIES_COL = 'menuCategories';
@@ -398,7 +399,13 @@ export async function getGallery(): Promise<GalleryItem[]> {
     const q = query(collection(db, GALLERY_COL), orderBy('order', 'asc'));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return INITIAL_GALLERY;
-    return snapshot.docs.map(doc => doc.data() as GalleryItem);
+    return snapshot.docs.map(doc => {
+      const item = doc.data() as GalleryItem;
+      return {
+        ...item,
+        imageUrl: resolveAssetUrl(item.imageUrl),
+      };
+    });
   } catch (error) {
     try {
       handleFirestoreError(error, OperationType.LIST, GALLERY_COL);
@@ -493,10 +500,18 @@ export async function getRestaurantSettings() {
       getDoc(doc(db, SETTINGS_COL, 'homepage')),
     ]);
 
+    const rawHome = (homeSnap.exists() ? homeSnap.data() : INITIAL_HOMEPAGE_SETTINGS) as HomepageSettings;
+    const homepage: HomepageSettings = {
+      ...rawHome,
+      heroImageUrl: resolveAssetUrl(rawHome.heroImageUrl, '/images/rashoi_hero_cuisine_1794139786997.jpg'),
+      introImageUrl: resolveAssetUrl(rawHome.introImageUrl, '/images/rashoi_interior_dining_1794139799818.jpg'),
+      specialFeatureImageUrl: resolveAssetUrl(rawHome.specialFeatureImageUrl, '/images/rashoi_signature_dish_1794139812970.jpg'),
+    };
+
     return {
       info: (infoSnap.exists() ? infoSnap.data() : INITIAL_RESTAURANT_INFO) as RestaurantInfo,
       payment: (paySnap.exists() ? paySnap.data() : INITIAL_PAYMENT_SETTINGS) as PaymentSettings,
-      homepage: (homeSnap.exists() ? homeSnap.data() : INITIAL_HOMEPAGE_SETTINGS) as HomepageSettings,
+      homepage,
     };
   } catch (error) {
     try {

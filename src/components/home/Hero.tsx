@@ -1,6 +1,7 @@
 import React from 'react';
 import { HomepageSettings } from '../../types';
 import { ArrowRight, Sparkles, MapPin, Utensils } from 'lucide-react';
+import { resolveAssetUrl } from '../../utils/imagePath';
 
 interface HeroProps {
   settings: HomepageSettings;
@@ -19,7 +20,7 @@ export const Hero: React.FC<HeroProps> = ({
       {/* Background Image: Bright, appetizing, and clearly visible */}
       <div className="absolute inset-0 z-0">
         <img
-          src={settings.heroImageUrl}
+          src={resolveAssetUrl(settings.heroImageUrl, '/images/rashoi_hero_cuisine_1794139786997.jpg')}
           alt="Exquisite Indian Cuisine at Rashoi Restaurant"
           className="w-full h-full object-cover object-center scale-102 transform duration-[10000ms] brightness-[0.88] contrast-[1.08] saturate-[1.12]"
         />
@@ -109,7 +110,7 @@ export const Hero: React.FC<HeroProps> = ({
               
               <div className="relative rounded-2xl overflow-hidden border border-[#A51C30]/45 bg-[#20191D] shadow-2xl">
                 <img
-                  src={settings.heroImageUrl}
+                  src={resolveAssetUrl(settings.heroImageUrl, '/images/rashoi_hero_cuisine_1794139786997.jpg')}
                   alt="Rashoi Signature Cuisine"
                   className="w-full h-84 object-cover object-center transform hover:scale-105 transition-transform duration-700 brightness-[0.95]"
                 />

@@ -1,11 +1,13 @@
-import appetiserImg from '../assets/images/rashoi_appetisers_platter_1794141766142.jpg';
-import tandoorImg from '../assets/images/rashoi_signature_dish_1794139812970.jpg';
-import curryImg from '../assets/images/rashoi_rich_curry_1794141781153.jpg';
-import biriyaniImg from '../assets/images/rashoi_royal_biriyani_1794141795126.jpg';
-import seafoodImg from '../assets/images/rashoi_seafood_special_1794141808693.jpg';
-import thaliImg from '../assets/images/rashoi_thali_banquet_1794141821766.jpg';
-import breadsImg from '../assets/images/rashoi_naan_breads_1794141835693.jpg';
-import feastImg from '../assets/images/rashoi_hero_cuisine_1794139786997.jpg';
+import { resolveAssetUrl } from './imagePath';
+
+const appetiserImg = '/images/rashoi_appetisers_platter_1794141766142.jpg';
+const tandoorImg = '/images/rashoi_signature_dish_1794139812970.jpg';
+const curryImg = '/images/rashoi_rich_curry_1794141781153.jpg';
+const biriyaniImg = '/images/rashoi_royal_biriyani_1794141795126.jpg';
+const seafoodImg = '/images/rashoi_seafood_special_1794141808693.jpg';
+const thaliImg = '/images/rashoi_thali_banquet_1794141821766.jpg';
+const breadsImg = '/images/rashoi_naan_breads_1794141835693.jpg';
+const feastImg = '/images/rashoi_hero_cuisine_1794139786997.jpg';
 
 export interface DishVisualMeta {
   imageUrl: string;
@@ -29,8 +31,8 @@ export function getDishVisualMeta(dish: {
   const nameLower = dish.name.toLowerCase();
   const catLower = (dish.categoryName || dish.categoryId || '').toLowerCase();
 
-  // If dish has a user-defined/admin image and it's valid, use that
-  let resolvedImage = dish.imageUrl;
+  // If dish has a user-defined/admin image and it's valid, resolve that
+  let resolvedImage = dish.imageUrl ? resolveAssetUrl(dish.imageUrl) : undefined;
 
   // Otherwise, intelligently map to corresponding gourmet food photograph
   if (!resolvedImage) {

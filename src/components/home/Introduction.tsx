@@ -1,5 +1,6 @@
 import React from 'react';
 import { HomepageSettings } from '../../types';
+import { resolveAssetUrl } from '../../utils/imagePath';
 
 interface IntroductionProps {
   settings: HomepageSettings;
@@ -21,7 +22,7 @@ export const Introduction: React.FC<IntroductionProps> = ({ settings }) => {
               
               <div className="relative rounded-2xl overflow-hidden border border-[#A51C30]/40 shadow-2xl bg-[#20191D]">
                 <img
-                  src={settings.introImageUrl}
+                  src={resolveAssetUrl(settings.introImageUrl, '/images/rashoi_interior_dining_1794139799818.jpg')}
                   alt="Atmosphere at Rashoi Restaurant"
                   className="w-full h-[420px] object-cover object-center transform hover:scale-102 transition-transform duration-500 brightness-95"
                 />

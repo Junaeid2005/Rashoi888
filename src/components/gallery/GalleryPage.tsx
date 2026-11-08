@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GalleryItem } from '../../types';
 import { X, ZoomIn } from 'lucide-react';
+import { resolveAssetUrl } from '../../utils/imagePath';
 
 interface GalleryPageProps {
   items: GalleryItem[];
@@ -64,7 +65,7 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({ items }) => {
               className="group relative rounded-2xl overflow-hidden bg-[#1F181C] border border-[#A51C30]/25 hover:border-[#E23D5B]/60 transition-all duration-300 shadow-xl cursor-pointer h-72 sm:h-80"
             >
               <img
-                src={item.imageUrl}
+                src={resolveAssetUrl(item.imageUrl)}
                 alt={item.title}
                 className="w-full h-full object-cover transform group-hover:scale-106 transition-transform duration-700 brightness-95"
               />
@@ -103,7 +104,7 @@ export const GalleryPage: React.FC<GalleryPageProps> = ({ items }) => {
               </button>
 
               <img
-                src={selectedImage.imageUrl}
+                src={resolveAssetUrl(selectedImage.imageUrl)}
                 alt={selectedImage.title}
                 className="max-w-full max-h-[75vh] object-contain rounded-2xl border border-[#A51C30]/40 shadow-2xl"
               />
