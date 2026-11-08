@@ -1,0 +1,235 @@
+{
+  "entities": {
+    "MenuCategory": {
+      "title": "MenuCategory",
+      "description": "Category for organizing restaurant dishes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "order": { "type": "number" },
+        "isVisible": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "order", "isVisible"]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Food item on the restaurant menu",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "categoryName": { "type": "string" },
+        "price": { "type": "number" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isVegetarian": { "type": "boolean" },
+        "isAvailable": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "isChefsSpecial": { "type": "boolean" },
+        "allergenInfo": { "type": "string" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "categoryId", "price", "isAvailable"]
+    },
+    "ClassicDishPricing": {
+      "title": "ClassicDishPricing",
+      "description": "Pricing row for classic dishes by protein type",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "dishName": { "type": "string" },
+        "chickenPrice": { "type": "number" },
+        "lambPrice": { "type": "number" },
+        "prawnPrice": { "type": "number" },
+        "kingPrawnPrice": { "type": "number" },
+        "vegPrice": { "type": "number" },
+        "order": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "dishName", "chickenPrice", "lambPrice", "prawnPrice", "vegPrice"]
+    },
+    "Reservation": {
+      "title": "Reservation",
+      "description": "Table reservation request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "guests": { "type": "number" },
+        "specialRequests": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "completed"] },
+        "customerId": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["customerName", "customerEmail", "customerPhone", "date", "time", "guests", "status"]
+    },
+    "FullyBookedDate": {
+      "title": "FullyBookedDate",
+      "description": "Date marked as fully booked for table reservations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "isFullyBooked": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["date", "isFullyBooked"]
+    },
+    "CustomerMessage": {
+      "title": "CustomerMessage",
+      "description": "Contact form, feedback or complaint submission",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "category": { "type": "string", "enum": ["Complaint", "Feedback", "Menu Suggestion", "General Enquiry", "Other"] },
+        "status": { "type": "string", "enum": ["unread", "read", "resolved"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "subject", "message", "category", "status"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer dining review and testimonial",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerName": { "type": "string" },
+        "rating": { "type": "number" },
+        "reviewText": { "type": "string" },
+        "date": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isPublished": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["customerName", "rating", "reviewText", "isPublished"]
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "Photograph in the restaurant gallery",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "category": { "type": "string" },
+        "isPublished": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["title", "imageUrl", "isPublished"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer takeaway food order",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "orderType": { "type": "string" },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "currency": { "type": "string" },
+        "paymentProvider": { "type": "string" },
+        "paymentStatus": { "type": "string", "enum": ["unpaid", "pending", "paid", "failed", "cancelled", "refunded"] },
+        "orderStatus": { "type": "string", "enum": ["new", "accepted", "preparing", "ready_for_collection", "completed", "cancelled"] },
+        "stripeCheckoutSessionId": { "type": "string" },
+        "stripePaymentIntentId": { "type": "string" },
+        "specialInstructions": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["orderId", "customerName", "customerEmail", "customerPhone", "orderType", "subtotal", "totalAmount", "currency", "paymentStatus", "orderStatus"]
+    },
+    "RestaurantSettings": {
+      "title": "RestaurantSettings",
+      "description": "Configuration settings for restaurant and pages",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "data": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Authorized administrator user profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/menuCategories/{categoryId}": {
+      "schema": "MenuCategory",
+      "description": "Categories for menu grouping"
+    },
+    "/menuItems/{itemId}": {
+      "schema": "MenuItem",
+      "description": "Menu food items"
+    },
+    "/classicDishesPricing/{dishId}": {
+      "schema": "ClassicDishPricing",
+      "description": "Multi-protein pricing rows for classic dishes"
+    },
+    "/reservations/{reservationId}": {
+      "schema": "Reservation",
+      "description": "Table bookings"
+    },
+    "/fullyBookedDates/{dateId}": {
+      "schema": "FullyBookedDate",
+      "description": "Calendar dates blocked for table reservations"
+    },
+    "/customerMessages/{messageId}": {
+      "schema": "CustomerMessage",
+      "description": "Customer contact messages and complaints"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Guest dining reviews"
+    },
+    "/gallery/{galleryId}": {
+      "schema": "GalleryItem",
+      "description": "Photographs in restaurant gallery"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer takeaway orders"
+    },
+    "/restaurantSettings/{settingId}": {
+      "schema": "RestaurantSettings",
+      "description": "General restaurant details, homepage content, and payment settings"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Allowed administrator accounts"
+    }
+  }
+}

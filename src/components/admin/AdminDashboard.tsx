@@ -1,0 +1,1615 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import {
+  getCategories,
+  saveCategory,
+  deleteCategory,
+  getMenuItems,
+  saveMenuItem,
+  deleteMenuItem,
+  getClassicDishesPricing,
+  updateClassicDishPricing,
+  getReservations,
+  updateReservationStatus,
+  deleteReservation,
+  getFullyBookedDates,
+  setDateFullyBooked,
+  removeFullyBookedDate,
+  getCustomerMessages,
+  updateMessageStatus,
+  deleteCustomerMessage,
+  getReviews,
+  saveReview,
+  deleteReview,
+  getGallery,
+  saveGalleryItem,
+  deleteGalleryItem,
+  getOrders,
+  updateOrderStatus,
+  getRestaurantSettings,
+  saveRestaurantInfo,
+  savePaymentSettings,
+  saveHomepageSettings,
+} from '../../services/dbService';
+import {
+  MenuCategory,
+  MenuItem,
+  ClassicDishPricing,
+  Reservation,
+  FullyBookedDate,
+  CustomerMessage,
+  Review,
+  GalleryItem,
+  Order,
+  RestaurantInfo,
+  PaymentSettings,
+  HomepageSettings,
+} from '../../types';
+import {
+  LayoutDashboard,
+  UtensilsCrossed,
+  Layers,
+  CalendarCheck,
+  CalendarX,
+  MessageSquare,
+  Star,
+  Image as ImageIcon,
+  Home,
+  Info,
+  CreditCard,
+  ShoppingBag,
+  LogOut,
+  Plus,
+  Trash2,
+  Edit2,
+  Check,
+  X,
+  Search,
+  Filter,
+  AlertTriangle,
+  RefreshCw,
+  ExternalLink,
+  ShieldCheck,
+  Save,
+  Clock,
+} from 'lucide-react';
+
+interface AdminDashboardProps {
+  onReturnToSite: () => void;
+}
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }) => {
+  const { user, isAdmin, signOut } = useAuth();
+  
+  const [activeTab, setActiveTab] = useState<
+    | 'overview'
+    | 'orders'
+    | 'menu'
+    | 'classicPricing'
+    | 'categories'
+    | 'reservations'
+    | 'fullyBooked'
+    | 'messages'
+    | 'reviews'
+    | 'gallery'
+    | 'homepage'
+    | 'restaurantInfo'
+    | 'paymentSettings'
+  >('overview');
+
+  const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+
+  // Data states
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [classicDishes, setClassicDishes] = useState<ClassicDishPricing[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [fullyBookedDates, setFullyBookedDates] = useState<FullyBookedDate[]>([]);
+  const [messages, setMessages] = useState<CustomerMessage[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  
+  const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo | null>(null);
+  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
+  const [homepageSettings, setHomepageSettings] = useState<HomepageSettings | null>(null);
+
+  // Fully Booked Date Control state
+  const [newBlockedDate, setNewBlockedDate] = useState('');
+  const [blockedReason, setBlockedReason] = useState('Fully booked for dinner service');
+
+  // Menu item modal / form
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [isAddingItem, setIsAddingItem] = useState(false);
+
+  // Search & Filter
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const loadAllData = async () => {
+    setLoading(true);
+    try {
+      const [
+        cats,
+        items,
+        classics,
+        resList,
+        blocked,
+        msgs,
+        revs,
+        gals,
+        ordList,
+        settings,
+      ] = await Promise.all([
+        getCategories(),
+        getMenuItems(),
+        getClassicDishesPricing(),
+        getReservations(),
+        getFullyBookedDates(),
+        getCustomerMessages(),
+        getReviews(),
+        getGallery(),
+        getOrders(),
+        getRestaurantSettings(),
+      ]);
+
+      setCategories(cats);
+      setMenuItems(items);
+      setClassicDishes(classics);
+      setReservations(resList);
+      setFullyBookedDates(blocked);
+      setMessages(msgs);
+      setReviews(revs);
+      setGallery(gals);
+      setOrders(ordList);
+      setRestaurantInfo(settings.info);
+      setPaymentSettings(settings.payment);
+      setHomepageSettings(settings.homepage);
+    } catch (err) {
+      console.error('Error fetching admin data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const triggerToast = (msg: string) => {
+    setSaveStatus(msg);
+    setTimeout(() => setSaveStatus(null), 3000);
+  };
+
+  // Guard: If not admin
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#120E10] flex items-center justify-center p-4 text-[#F5F1EA]">
+        <div className="max-w-md w-full p-8 rounded-2xl bg-[#1F181C] border border-red-500/30 text-center space-y-4">
+          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto" />
+          <h2 className="font-serif text-2xl font-bold">Admin Authorization Required</h2>
+          <p className="text-xs text-[#B8B1A7] leading-relaxed">
+            This administration portal is restricted to authorized Rashoi restaurant managers only.
+            {user ? ` Currently signed in as ${user.email}.` : ' Please sign in with your authorized Google administrator credentials.'}
+          </p>
+          <div className="pt-4 flex flex-col space-y-2">
+            <button
+              onClick={onReturnToSite}
+              className="w-full py-2.5 bg-[#800020] text-white font-bold text-xs uppercase tracking-wider rounded"
+            >
+              Return to Website
+            </button>
+            {user && (
+              <button
+                onClick={() => signOut()}
+                className="w-full py-2 border border-[#262626] text-xs text-red-400 rounded"
+              >
+                Sign Out
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Actions ---
+
+  const handleToggleFullyBooked = async (dateStr: string, currentStatus: boolean) => {
+    try {
+      await setDateFullyBooked(dateStr, !currentStatus, 'Updated via Admin Dashboard');
+      setFullyBookedDates((prev) =>
+        prev.map((d) => (d.date === dateStr ? { ...d, isFullyBooked: !currentStatus } : d))
+      );
+      triggerToast(`Date ${dateStr} status updated`);
+    } catch (err) {
+      alert('Failed to update fully booked date');
+    }
+  };
+
+  const handleAddFullyBookedDate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBlockedDate) return;
+    try {
+      await setDateFullyBooked(newBlockedDate, true, blockedReason);
+      setFullyBookedDates((prev) => [
+        ...prev.filter((d) => d.date !== newBlockedDate),
+        { id: newBlockedDate, date: newBlockedDate, isFullyBooked: true, reason: blockedReason },
+      ]);
+      setNewBlockedDate('');
+      triggerToast(`Date ${newBlockedDate} is now marked FULLY BOOKED`);
+    } catch (err) {
+      alert('Error blocking date');
+    }
+  };
+
+  const handleRemoveBlockedDate = async (dateStr: string) => {
+    if (!window.confirm(`Re-open table bookings for ${dateStr}?`)) return;
+    try {
+      await removeFullyBookedDate(dateStr);
+      setFullyBookedDates((prev) => prev.filter((d) => d.date !== dateStr));
+      triggerToast(`Removed fully booked restriction for ${dateStr}`);
+    } catch (err) {
+      alert('Error removing date');
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['orderStatus']) => {
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      setOrders((prev) =>
+        prev.map((o) => (o.orderId === orderId ? { ...o, orderStatus: newStatus } : o))
+      );
+      triggerToast(`Order ${orderId} status changed to ${newStatus}`);
+    } catch (err) {
+      alert('Failed to update order status');
+    }
+  };
+
+  const handleUpdateReservationStatus = async (resId: string, status: Reservation['status']) => {
+    try {
+      await updateReservationStatus(resId, status);
+      setReservations((prev) =>
+        prev.map((r) => (r.id === resId ? { ...r, status } : r))
+      );
+      triggerToast(`Reservation ${resId} marked ${status}`);
+    } catch (err) {
+      alert('Failed to update reservation');
+    }
+  };
+
+  const handleDeleteReservation = async (resId: string) => {
+    if (!window.confirm('Are you sure you want to delete this reservation?')) return;
+    try {
+      await deleteReservation(resId);
+      setReservations((prev) => prev.filter((r) => r.id !== resId));
+      triggerToast('Reservation deleted');
+    } catch (err) {
+      alert('Failed to delete reservation');
+    }
+  };
+
+  const handleSaveClassicPricing = async (dish: ClassicDishPricing) => {
+    try {
+      await updateClassicDishPricing(dish);
+      setClassicDishes((prev) =>
+        prev.map((d) => (d.id === dish.id ? dish : d))
+      );
+      triggerToast(`Updated prices for ${dish.dishName}`);
+    } catch (err) {
+      alert('Failed to save classic pricing');
+    }
+  };
+
+  const handleSaveRestaurantInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restaurantInfo) return;
+    try {
+      await saveRestaurantInfo(restaurantInfo);
+      triggerToast('Restaurant information saved');
+    } catch (err) {
+      alert('Failed to save restaurant details');
+    }
+  };
+
+  const handleSavePaymentSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentSettings) return;
+    try {
+      await savePaymentSettings(paymentSettings);
+      triggerToast('Payment configuration updated');
+    } catch (err) {
+      alert('Failed to save payment settings');
+    }
+  };
+
+  const handleSaveHomepageSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!homepageSettings) return;
+    try {
+      await saveHomepageSettings(homepageSettings);
+      triggerToast('Homepage content saved');
+    } catch (err) {
+      alert('Failed to save homepage settings');
+    }
+  };
+
+  const handleSaveMenuItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    try {
+      await saveMenuItem(editingItem);
+      setMenuItems((prev) => {
+        const idx = prev.findIndex((i) => i.id === editingItem.id);
+        if (idx > -1) {
+          const next = [...prev];
+          next[idx] = editingItem;
+          return next;
+        }
+        return [...prev, editingItem];
+      });
+      setEditingItem(null);
+      setIsAddingItem(false);
+      triggerToast(`Saved dish "${editingItem.name}"`);
+    } catch (err) {
+      alert('Failed to save menu item');
+    }
+  };
+
+  const handleDeleteMenuItem = async (id: string, name: string) => {
+    if (!window.confirm(`Delete dish "${name}" from menu?`)) return;
+    try {
+      await deleteMenuItem(id);
+      setMenuItems((prev) => prev.filter((i) => i.id !== id));
+      triggerToast(`Deleted ${name}`);
+    } catch (err) {
+      alert('Failed to delete dish');
+    }
+  };
+
+  // Nav items list
+  const sidebarNav = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'orders', label: 'Orders Management', icon: ShoppingBag, count: orders.filter(o => o.orderStatus === 'new').length },
+    { id: 'reservations', label: 'Table Reservations', icon: CalendarCheck, count: reservations.filter(r => r.status === 'pending').length },
+    { id: 'fullyBooked', label: 'Fully Booked Control', icon: CalendarX, count: fullyBookedDates.filter(d => d.isFullyBooked).length },
+    { id: 'menu', label: 'Menu Management', icon: UtensilsCrossed },
+    { id: 'classicPricing', label: 'Classic Dishes Matrix', icon: Layers },
+    { id: 'messages', label: 'Customer Messages', icon: MessageSquare, count: messages.filter(m => m.status === 'unread').length },
+    { id: 'reviews', label: 'Reviews', icon: Star },
+    { id: 'gallery', label: 'Gallery', icon: ImageIcon },
+    { id: 'homepage', label: 'Homepage Content', icon: Home },
+    { id: 'restaurantInfo', label: 'Restaurant Info', icon: Info },
+    { id: 'paymentSettings', label: 'Payment Settings', icon: CreditCard },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#120E10] text-[#F5F1EA] flex flex-col md:flex-row">
+      
+      {/* Toast Notification */}
+      {saveStatus && (
+        <div className="fixed top-5 right-5 z-50 bg-[#800020] text-white font-bold text-xs uppercase px-4 py-2.5 rounded shadow-2xl flex items-center space-x-2 animate-fade-in">
+          <Check className="w-4 h-4" />
+          <span>{saveStatus}</span>
+        </div>
+      )}
+
+      {/* Sidebar Navigation */}
+      <aside className="w-full md:w-64 bg-[#161114] border-r border-[#800020]/30 flex flex-col justify-between shrink-0">
+        <div>
+          {/* Header */}
+          <div className="p-6 border-b border-[#262626] flex items-center justify-between">
+            <div>
+              <span className="font-serif text-lg font-bold tracking-widest text-[#F5F1EA]">
+                RASHOI
+              </span>
+              <p className="text-[9px] uppercase tracking-widest text-[#F5B8C3]">
+                ADMIN CONTROL SUITE
+              </p>
+            </div>
+            <div className="flex items-center space-x-1">
+              
+              <button
+                onClick={loadAllData}
+                title="Refresh Data"
+                className="p-1.5 text-[#858078] hover:text-[#FFFFFF] rounded"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="p-3 space-y-1">
+            {sidebarNav.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id as any)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                    isActive
+                      ? 'bg-[#800020] text-white font-semibold shadow-md'
+                      : 'text-[#B8B1A7] hover:bg-[#1F181C] hover:text-[#F5F1EA]'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2.5 truncate">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {Boolean(item.count && item.count > 0) && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        isActive
+                          ? 'bg-[#120E10] text-[#F5B8C3]'
+                          : 'bg-[#800020] text-white'
+                      }`}
+                    >
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* User details & logout */}
+        <div className="p-4 border-t border-[#262626] space-y-2">
+          <div className="px-2 text-left">
+            <p className="text-[10px] text-[#858078]">Manager Account</p>
+            <p className="text-xs text-[#F5F1EA] truncate">{user?.email}</p>
+          </div>
+
+          <button
+            onClick={onReturnToSite}
+            className="w-full py-2 px-3 rounded bg-[#1F181C] hover:bg-[#292025] text-xs text-[#B8B1A7] hover:text-[#FFFFFF] flex items-center justify-center space-x-2 border border-[#262626]"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>View Public Website</span>
+          </button>
+
+          <button
+            onClick={() => signOut()}
+            className="w-full py-2 px-3 rounded hover:bg-red-950/40 text-xs text-red-400 flex items-center justify-center space-x-2"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 bg-[#120E10] overflow-y-auto p-6 md:p-10 text-left">
+        
+        {/* ================= 1. OVERVIEW ================= */}
+        {activeTab === 'overview' && (
+          <div className="space-y-8 max-w-6xl">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#F5F1EA]">Executive Overview</h2>
+              <p className="text-xs text-[#858078] mt-1">Live metrics across bookings, takeaway orders, and restaurant catalog.</p>
+            </div>
+
+            {/* Metric Cards Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-5 rounded-xl bg-[#1F181C] border border-[#262626]">
+                <p className="text-xs text-[#858078] uppercase">Total Dishes</p>
+                <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">{menuItems.length}</p>
+                <p className="text-[10px] text-[#B8B1A7] mt-1">{categories.length} Active Categories</p>
+              </div>
+
+              <div className="p-5 rounded-xl bg-[#1F181C] border border-[#262626]">
+                <p className="text-xs text-[#858078] uppercase">Table Reservations</p>
+                <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">{reservations.length}</p>
+                <p className="text-[10px] text-amber-400 mt-1">
+                  {reservations.filter((r) => r.status === 'pending').length} Pending Confirmation
+                </p>
+              </div>
+
+              <div className="p-5 rounded-xl bg-[#1F181C] border border-[#262626]">
+                <p className="text-xs text-[#858078] uppercase">Takeaway Orders</p>
+                <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">{orders.length}</p>
+                <p className="text-[10px] text-emerald-400 mt-1">
+                  {orders.filter((o) => o.orderStatus === 'new').length} New Orders
+                </p>
+              </div>
+
+              <div className="p-5 rounded-xl bg-[#1F181C] border border-[#262626]">
+                <p className="text-xs text-[#858078] uppercase">Blocked Dates</p>
+                <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">
+                  {fullyBookedDates.filter((d) => d.isFullyBooked).length}
+                </p>
+                <p className="text-[10px] text-[#858078] mt-1">Marked Fully Booked</p>
+              </div>
+            </div>
+
+            {/* Quick Actions & Recent Orders */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* Recent Orders Box */}
+              <div className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">Recent Orders</h3>
+                  <button
+                    onClick={() => setActiveTab('orders')}
+                    className="text-xs text-[#F5B8C3] hover:underline"
+                  >
+                    View All
+                  </button>
+                </div>
+
+                {orders.slice(0, 4).map((ord) => (
+                  <div key={ord.id} className="p-3 rounded bg-[#161114] flex justify-between items-center text-xs">
+                    <div>
+                      <p className="font-mono font-bold text-[#FFFFFF]">{ord.orderId}</p>
+                      <p className="text-[#858078]">{ord.customerName} • {ord.items.length} items</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-[#F5F1EA]">£{ord.totalAmount.toFixed(2)}</p>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 capitalize">
+                        {ord.orderStatus}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pending Table Reservations */}
+              <div className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">Pending Bookings</h3>
+                  <button
+                    onClick={() => setActiveTab('reservations')}
+                    className="text-xs text-[#F5B8C3] hover:underline"
+                  >
+                    View All
+                  </button>
+                </div>
+
+                {reservations
+                  .filter((r) => r.status === 'pending')
+                  .slice(0, 4)
+                  .map((res) => (
+                    <div key={res.id} className="p-3 rounded bg-[#161114] flex justify-between items-center text-xs">
+                      <div>
+                        <p className="font-bold text-[#F5F1EA]">{res.customerName} ({res.guests} guests)</p>
+                        <p className="text-[#858078]">{res.date} at {res.time}</p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleUpdateReservationStatus(res.id, 'confirmed')}
+                          className="px-2.5 py-1 bg-[#800020] text-white font-bold rounded hover:bg-[#9B1130]"
+                        >
+                          Confirm
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* ================= 2. ORDERS MANAGEMENT ================= */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6 max-w-6xl">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#F5F1EA]">Takeaway Orders Management</h2>
+              <p className="text-xs text-[#858078] mt-1">Review collection orders, update fulfillment statuses, and inspect payment badges.</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pb-2">
+              {['all', 'new', 'accepted', 'preparing', 'ready_for_collection', 'completed', 'cancelled'].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wider ${
+                    statusFilter === st
+                      ? 'bg-[#800020] text-white'
+                      : 'bg-[#1F181C] text-[#858078] hover:text-[#F5F1EA]'
+                  }`}
+                >
+                  {st.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              {orders
+                .filter((o) => (statusFilter === 'all' ? true : o.orderStatus === statusFilter))
+                .map((order) => (
+                  <div
+                    key={order.id}
+                    className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4 shadow-lg"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#262626] pb-3">
+                      <div>
+                        <span className="font-mono font-bold text-lg text-[#FFFFFF]">{order.orderId}</span>
+                        <p className="text-xs text-[#858078]">
+                          Placed on {new Date(order.createdAt).toLocaleString()} • Type: Collection
+                        </p>
+                      </div>
+
+                      {/* Payment Status Badges strictly per prompt */}
+                      <div className="flex items-center space-x-2">
+                        {order.paymentStatus === 'paid' && (
+                          <span className="px-3 py-1 rounded text-xs font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-500/30">
+                            PAID
+                          </span>
+                        )}
+                        {order.paymentStatus === 'pending' && (
+                          <span className="px-3 py-1 rounded text-xs font-bold uppercase bg-amber-950 text-amber-400 border border-amber-500/30">
+                            PENDING
+                          </span>
+                        )}
+                        {order.paymentStatus === 'unpaid' && (
+                          <span className="px-3 py-1 rounded text-xs font-bold uppercase bg-[#292025] text-[#F5B8C3] border border-[#800020]/40">
+                            PAY ON COLLECTION
+                          </span>
+                        )}
+                        {order.paymentStatus === 'failed' && (
+                          <span className="px-3 py-1 rounded text-xs font-bold uppercase bg-red-950 text-red-400 border border-red-500/30">
+                            FAILED
+                          </span>
+                        )}
+                        {order.paymentStatus === 'refunded' && (
+                          <span className="px-3 py-1 rounded text-xs font-bold uppercase bg-zinc-800 text-zinc-300">
+                            REFUNDED
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Customer Info */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <span className="text-[#858078]">Customer:</span>
+                        <p className="font-semibold text-[#F5F1EA]">{order.customerName}</p>
+                      </div>
+                      <div>
+                        <span className="text-[#858078]">Email:</span>
+                        <p className="text-[#B8B1A7]">{order.customerEmail}</p>
+                      </div>
+                      <div>
+                        <span className="text-[#858078]">Phone:</span>
+                        <p className="text-[#B8B1A7]">{order.customerPhone}</p>
+                      </div>
+                    </div>
+
+                    {/* Items List */}
+                    <div className="p-3 rounded bg-[#161114] text-xs space-y-1">
+                      <span className="text-[10px] uppercase text-[#858078] tracking-wider">Ordered Dishes</span>
+                      {order.items.map((it, idx) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>
+                            {it.quantity}x {it.name} {it.selectedProtein && `(${it.selectedProtein})`}
+                          </span>
+                          <span className="font-mono text-[#FFFFFF]">£{(it.price * it.quantity).toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className="pt-2 border-t border-[#202020] flex justify-between font-bold text-sm">
+                        <span>Total:</span>
+                        <span className="font-mono text-[#FFFFFF]">£{order.totalAmount.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {order.specialInstructions && (
+                      <p className="text-xs text-[#B8B1A7] italic">
+                        Special Instructions: "{order.specialInstructions}"
+                      </p>
+                    )}
+
+                    {/* Fulfilment status dropdown */}
+                    <div className="pt-2 flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center space-x-2 text-xs">
+                        <span className="text-[#858078]">Order Fulfilment:</span>
+                        <select
+                          value={order.orderStatus}
+                          onChange={(e) => handleUpdateOrderStatus(order.orderId, e.target.value as any)}
+                          className="px-3 py-1.5 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-xs focus:outline-none focus:border-[#A51C30]"
+                        >
+                          <option value="new">New</option>
+                          <option value="accepted">Accepted</option>
+                          <option value="preparing">Preparing</option>
+                          <option value="ready_for_collection">Ready for Collection</option>
+                          <option value="completed">Completed</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
+
+                      <div className="text-xs text-[#858078] font-mono">
+                        Provider: {order.paymentProvider.toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* ================= 3. MENU MANAGEMENT ================= */}
+        {activeTab === 'menu' && (
+          <div className="space-y-6 max-w-6xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-serif text-3xl font-bold text-[#F5F1EA]">Menu Dishes Management</h2>
+                <p className="text-xs text-[#858078] mt-1">Add, edit prices, descriptions, vegetarian flags, and availability for all 70+ menu items.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingItem({
+                    id: 'dish-' + Date.now(),
+                    name: '',
+                    categoryId: categories[0]?.id || 'appetisers',
+                    categoryName: categories[0]?.name || 'Appetisers',
+                    price: 9.95,
+                    description: '',
+                    isAvailable: true,
+                    isVegetarian: false,
+                    isFeatured: false,
+                    isChefsSpecial: false,
+                    order: menuItems.length + 1,
+                  });
+                  setIsAddingItem(true);
+                }}
+                className="px-4 py-2 bg-[#800020] hover:bg-[#9B1130] text-white shadow-md font-bold text-xs uppercase tracking-wider rounded flex items-center space-x-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add New Dish</span>
+              </button>
+            </div>
+
+            {/* Menu Items Table */}
+            <div className="overflow-x-auto rounded-xl border border-[#262626] bg-[#1F181C]">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-[#161114] border-b border-[#262626] text-[#858078] uppercase">
+                    <th className="py-3 px-4">Dish Name</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Price (GBP)</th>
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#262626]">
+                  {menuItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-[#292025]/50">
+                      <td className="py-3 px-4 font-semibold text-[#F5F1EA]">
+                        {item.name}
+                        {item.isFeatured && (
+                          <span className="ml-2 text-[10px] text-[#F5B8C3] font-mono">★ Featured</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-[#858078]">{item.categoryName}</td>
+                      <td className="py-3 px-4 font-mono font-bold text-[#FFFFFF]">
+                        £{item.price.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4">
+                        {item.isVegetarian ? (
+                          <span className="text-emerald-400">Vegetarian</span>
+                        ) : (
+                          <span className="text-[#858078]">Non-Veg</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded text-[10px] ${item.isAvailable ? 'bg-emerald-950 text-emerald-400' : 'bg-red-950 text-red-400'}`}>
+                          {item.isAvailable ? 'Available' : 'Unavailable'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right space-x-2">
+                        <button
+                          onClick={() => {
+                            setEditingItem(item);
+                            setIsAddingItem(false);
+                          }}
+                          className="p-1 text-[#F5B8C3] hover:text-[#FFFFFF]"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMenuItem(item.id, item.name)}
+                          className="p-1 text-[#858078] hover:text-red-400"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Edit / Add Modal */}
+            {editingItem && (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <form
+                  onSubmit={handleSaveMenuItem}
+                  className="w-full max-w-lg rounded-2xl bg-[#1F181C] border border-[#800020]/50 p-6 space-y-4 text-xs text-left"
+                >
+                  <div className="flex justify-between items-center border-b border-[#262626] pb-3">
+                    <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">
+                      {isAddingItem ? 'Add Dish' : 'Edit Dish Details'}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem(null)}
+                      className="text-[#858078] hover:text-[#F5F1EA]"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block uppercase text-[#858078] mb-1">Dish Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingItem.name}
+                      onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                      className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm focus:border-[#A51C30]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block uppercase text-[#858078] mb-1">Category *</label>
+                      <select
+                        value={editingItem.categoryId}
+                        onChange={(e) => {
+                          const cat = categories.find((c) => c.id === e.target.value);
+                          setEditingItem({
+                            ...editingItem,
+                            categoryId: e.target.value,
+                            categoryName: cat?.name || editingItem.categoryName,
+                          });
+                        }}
+                        className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm"
+                      >
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block uppercase text-[#858078] mb-1">Price (GBP £) *</label>
+                      <input
+                        type="number"
+                        step="0.05"
+                        required
+                        value={editingItem.price}
+                        onChange={(e) => setEditingItem({ ...editingItem, price: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block uppercase text-[#858078] mb-1">Description</label>
+                    <textarea
+                      rows={3}
+                      value={editingItem.description || ''}
+                      onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                      className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm"
+                    />
+                  </div>
+
+                  {/* Toggles */}
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editingItem.isVegetarian || false}
+                        onChange={(e) => setEditingItem({ ...editingItem, isVegetarian: e.target.checked })}
+                      />
+                      <span>Vegetarian Dish</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editingItem.isAvailable}
+                        onChange={(e) => setEditingItem({ ...editingItem, isAvailable: e.target.checked })}
+                      />
+                      <span>Available for Ordering</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editingItem.isFeatured || false}
+                        onChange={(e) => setEditingItem({ ...editingItem, isFeatured: e.target.checked })}
+                      />
+                      <span>Feature on Homepage</span>
+                    </label>
+
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editingItem.isChefsSpecial || false}
+                        onChange={(e) => setEditingItem({ ...editingItem, isChefsSpecial: e.target.checked })}
+                      />
+                      <span>Chef's Special Badge</span>
+                    </label>
+                  </div>
+
+                  <div className="pt-4 flex justify-end space-x-3 border-t border-[#262626]">
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem(null)}
+                      className="px-4 py-2 border border-[#262626] text-[#858078] rounded"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2 bg-[#800020] hover:bg-[#9B1130] text-white shadow-md font-bold rounded uppercase"
+                    >
+                      Save Dish
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= 4. CLASSIC DISHES MATRIX ================= */}
+        {activeTab === 'classicPricing' && (
+          <div className="space-y-6 max-w-6xl">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#FFFFFF]">Classic Dishes Pricing Matrix</h2>
+              <p className="text-xs text-[#858078] mt-1">
+                Edit individual prices for all 14 classic dishes across 5 proteins (Chicken, Lamb, Prawn, King Prawn, Veg). Changes reflect immediately on the customer menu.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-[#800020]/40 bg-[#1F181C] shadow-xl">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-[#161114] border-b border-[#262626] text-[#F5B8C3] uppercase font-mono">
+                    <th className="py-3 px-4">Dish</th>
+                    <th className="py-3 px-4">Chicken (£)</th>
+                    <th className="py-3 px-4">Lamb (£)</th>
+                    <th className="py-3 px-4">Prawn (£)</th>
+                    <th className="py-3 px-4">King Prawn (£)</th>
+                    <th className="py-3 px-4">Veg (£)</th>
+                    <th className="py-3 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#262626]">
+                  {classicDishes.map((dish, idx) => (
+                    <tr key={dish.id} className="hover:bg-[#292025]/50">
+                      <td className="py-3 px-4 font-serif font-bold text-sm text-[#F5F1EA]">
+                        {dish.dishName}
+                      </td>
+
+                      {/* Chicken */}
+                      <td className="py-2 px-3">
+                        <input
+                          type="number"
+                          step="0.05"
+                          value={dish.chickenPrice}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setClassicDishes((prev) =>
+                              prev.map((d) => (d.id === dish.id ? { ...d, chickenPrice: val } : d))
+                            );
+                          }}
+                          className="w-20 px-2 py-1 rounded bg-[#161114] border border-[#262626] text-[#F5B8C3] font-mono text-xs"
+                        />
+                      </td>
+
+                      {/* Lamb */}
+                      <td className="py-2 px-3">
+                        <input
+                          type="number"
+                          step="0.05"
+                          value={dish.lambPrice}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setClassicDishes((prev) =>
+                              prev.map((d) => (d.id === dish.id ? { ...d, lambPrice: val } : d))
+                            );
+                          }}
+                          className="w-20 px-2 py-1 rounded bg-[#161114] border border-[#262626] text-[#F5B8C3] font-mono text-xs"
+                        />
+                      </td>
+
+                      {/* Prawn */}
+                      <td className="py-2 px-3">
+                        {dish.prawnPrice !== null ? (
+                          <input
+                            type="number"
+                            step="0.05"
+                            value={dish.prawnPrice}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setClassicDishes((prev) =>
+                                prev.map((d) => (d.id === dish.id ? { ...d, prawnPrice: val } : d))
+                              );
+                            }}
+                            className="w-20 px-2 py-1 rounded bg-[#161114] border border-[#262626] text-[#F5B8C3] font-mono text-xs"
+                          />
+                        ) : (
+                          <span className="text-[#858078] italic">N/A</span>
+                        )}
+                      </td>
+
+                      {/* King Prawn */}
+                      <td className="py-2 px-3">
+                        {dish.kingPrawnPrice !== null ? (
+                          <input
+                            type="number"
+                            step="0.05"
+                            value={dish.kingPrawnPrice}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setClassicDishes((prev) =>
+                                prev.map((d) => (d.id === dish.id ? { ...d, kingPrawnPrice: val } : d))
+                              );
+                            }}
+                            className="w-20 px-2 py-1 rounded bg-[#161114] border border-[#262626] text-[#F5B8C3] font-mono text-xs"
+                          />
+                        ) : (
+                          <span className="text-[#858078] italic">N/A</span>
+                        )}
+                      </td>
+
+                      {/* Veg */}
+                      <td className="py-2 px-3">
+                        <input
+                          type="number"
+                          step="0.05"
+                          value={dish.vegPrice}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setClassicDishes((prev) =>
+                              prev.map((d) => (d.id === dish.id ? { ...d, vegPrice: val } : d))
+                            );
+                          }}
+                          className="w-20 px-2 py-1 rounded bg-[#161114] border border-[#262626] text-[#F5B8C3] font-mono text-xs"
+                        />
+                      </td>
+
+                      {/* Save Button */}
+                      <td className="py-2 px-3 text-right">
+                        <button
+                          onClick={() => handleSaveClassicPricing(dish)}
+                          className="px-3 py-1 bg-[#800020] hover:bg-[#9B1130] text-white shadow-md font-bold rounded text-[11px]"
+                        >
+                          Save
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ================= 5. FULLY BOOKED DATE CONTROL (CRITICAL FEATURE) ================= */}
+        {activeTab === 'fullyBooked' && (
+          <div className="space-y-8 max-w-4xl">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#FFFFFF]">Fully Booked Date Control</h2>
+              <p className="text-xs text-[#858078] mt-1">
+                Mark specific dates as Fully Booked to immediately disable table reservations for that day.
+              </p>
+            </div>
+
+            {/* Block New Date Form */}
+            <div className="p-6 rounded-xl bg-[#1F181C] border border-[#800020]/40 space-y-4">
+              <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">
+                Block a Specific Date
+              </h3>
+
+              <form onSubmit={handleAddFullyBookedDate} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                <div className="sm:col-span-4">
+                  <label className="block text-xs uppercase text-[#858078] mb-1">Select Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={newBlockedDate}
+                    onChange={(e) => setNewBlockedDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm focus:border-[#A51C30]"
+                  />
+                </div>
+
+                <div className="sm:col-span-5">
+                  <label className="block text-xs uppercase text-[#858078] mb-1">Reason / Note</label>
+                  <input
+                    type="text"
+                    value={blockedReason}
+                    onChange={(e) => setBlockedReason(e.target.value)}
+                    placeholder="e.g. Private corporate event, fully booked"
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm focus:border-[#A51C30]"
+                  />
+                </div>
+
+                <div className="sm:col-span-3">
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-red-800 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded"
+                  >
+                    Mark Fully Booked
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Active Blocked Dates List */}
+            <div className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4">
+              <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">
+                Currently Blocked Dates ({fullyBookedDates.filter(d => d.isFullyBooked).length})
+              </h3>
+
+              {fullyBookedDates.filter(d => d.isFullyBooked).length === 0 ? (
+                <p className="text-xs text-[#858078]">No dates are currently marked fully booked. All dates accept reservations.</p>
+              ) : (
+                <div className="space-y-3">
+                  {fullyBookedDates
+                    .filter((d) => d.isFullyBooked)
+                    .map((item) => (
+                      <div
+                        key={item.date}
+                        className="p-4 rounded-lg bg-[#161114] border border-amber-600/30 flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <CalendarX className="w-5 h-5 text-amber-500 shrink-0" />
+                          <div>
+                            <span className="font-serif font-bold text-sm text-[#F5F1EA]">{item.date}</span>
+                            <p className="text-[#858078]">{item.reason || 'Fully booked by restaurant'}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleRemoveBlockedDate(item.date)}
+                          className="px-3 py-1.5 rounded bg-emerald-950 text-emerald-400 hover:bg-emerald-900 border border-emerald-500/30 font-semibold uppercase text-[10px]"
+                        >
+                          Reopen Bookings
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ================= 6. TABLE RESERVATIONS ================= */}
+        {activeTab === 'reservations' && (
+          <div className="space-y-6 max-w-6xl">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#F5F1EA]">Guest Table Reservations</h2>
+              <p className="text-xs text-[#858078] mt-1">Review table requests, update confirmation status, and manage seatings.</p>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-[#262626] bg-[#1F181C]">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-[#161114] border-b border-[#262626] text-[#858078] uppercase">
+                    <th className="py-3 px-4">Date & Time</th>
+                    <th className="py-3 px-4">Guest Name</th>
+                    <th className="py-3 px-4">Party Size</th>
+                    <th className="py-3 px-4">Contact</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#262626]">
+                  {reservations.map((res) => (
+                    <tr key={res.id} className="hover:bg-[#292025]/50">
+                      <td className="py-3 px-4 font-mono font-bold text-[#FFFFFF]">
+                        {res.date} • {res.time}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-[#F5F1EA]">
+                        {res.customerName}
+                        {res.specialRequests && (
+                          <p className="text-[10px] text-[#858078] font-normal italic">
+                            Req: "{res.specialRequests}"
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">{res.guests} Guests</td>
+                      <td className="py-3 px-4 text-[#B8B1A7]">
+                        <p>{res.customerPhone}</p>
+                        <p className="text-[10px] text-[#858078]">{res.customerEmail}</p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <select
+                          value={res.status}
+                          onChange={(e) => handleUpdateReservationStatus(res.id, e.target.value as any)}
+                          className="px-2 py-1 rounded bg-[#161114] border border-[#262626] text-xs"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="completed">Completed</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => handleDeleteReservation(res.id)}
+                          className="p-1 text-[#858078] hover:text-red-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ================= 7. CUSTOMER MESSAGES ================= */}
+        {activeTab === 'messages' && (
+          <div className="space-y-6 max-w-5xl">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#F5F1EA]">Complaints & Guest Feedback</h2>
+              <p className="text-xs text-[#858078] mt-1">Direct feedback submissions from patrons.</p>
+            </div>
+
+            <div className="space-y-4">
+              {messages.length === 0 ? (
+                <div className="p-8 text-center bg-[#1F181C] rounded-xl text-xs text-[#858078]">
+                  No feedback or complaint messages received yet.
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <div key={msg.id} className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-3 text-xs">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-sm text-[#F5F1EA]">{msg.subject}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${msg.category === 'Complaint' ? 'bg-red-950 text-red-300' : 'bg-[#292025] text-[#F5B8C3]'}`}>
+                          {msg.category}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-[#858078]">
+                        {new Date(msg.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <p className="text-[#B8B1A7] text-sm leading-relaxed whitespace-pre-wrap bg-[#161114] p-3 rounded">
+                      {msg.message}
+                    </p>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-[#262626] text-[11px] text-[#858078]">
+                      <span>From: {msg.name} ({msg.email})</span>
+                      <div className="flex items-center space-x-3">
+                        <select
+                          value={msg.status}
+                          onChange={async (e) => {
+                            await updateMessageStatus(msg.id, e.target.value as any);
+                            setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: e.target.value as any } : m));
+                          }}
+                          className="px-2 py-1 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                        >
+                          <option value="unread">Unread</option>
+                          <option value="read">Read</option>
+                          <option value="resolved">Resolved</option>
+                        </select>
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('Delete message?')) return;
+                            await deleteCustomerMessage(msg.id);
+                            setMessages(prev => prev.filter(m => m.id !== msg.id));
+                          }}
+                          className="hover:text-red-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ================= 8. PAYMENT SETTINGS ================= */}
+        {activeTab === 'paymentSettings' && paymentSettings && (
+          <div className="space-y-8 max-w-3xl">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#FFFFFF]">Payment & Checkout Settings</h2>
+              <p className="text-xs text-[#858078] mt-1">Stripe Hosted Checkout readiness status and takeaway collection discount.</p>
+            </div>
+
+            <div className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4">
+              <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">Stripe Hosted Checkout Status</h3>
+              
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="p-4 rounded bg-[#161114] border border-[#262626]">
+                  <p className="text-[#858078]">Payment Provider</p>
+                  <p className="font-serif text-lg font-bold text-[#F5F1EA] mt-1">Stripe</p>
+                </div>
+
+                <div className="p-4 rounded bg-[#161114] border border-[#262626]">
+                  <p className="text-[#858078]">Stripe Configuration</p>
+                  <p className="font-serif text-lg font-bold text-amber-400 mt-1">
+                    {paymentSettings.stripeConfigured ? 'Configured' : 'Not Configured'}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded bg-[#161114] border border-[#262626]">
+                  <p className="text-[#858078]">Online Card Payment</p>
+                  <p className="font-serif text-lg font-bold text-red-400 mt-1">
+                    {paymentSettings.stripeEnabled ? 'Enabled' : 'Disabled'}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded bg-[#161114] border border-[#262626]">
+                  <p className="text-[#858078]">Currency</p>
+                  <p className="font-serif text-lg font-bold text-[#FFFFFF] mt-1">GBP (£)</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-amber-950/30 border border-amber-600/30 text-amber-200 text-xs leading-relaxed space-y-2">
+                <p className="font-semibold">Stripe Architecture Ready (No Webhooks)</p>
+                <p>
+                  Per project guidelines, online card payments remain disabled until you configure your <code>STRIPE_SECRET_KEY</code> in Netlify Environment Variables.
+                </p>
+                <p>
+                  Full setup instructions are detailed in <code>STRIPE_SETUP_GUIDE.md</code>.
+                </p>
+              </div>
+            </div>
+
+            {/* Collection Discount Configuration */}
+            <form onSubmit={handleSavePaymentSettings} className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4 text-xs">
+              <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">Takeaway Collection Discount</h3>
+              
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={paymentSettings.collectionDiscountEnabled}
+                  onChange={(e) => setPaymentSettings({ ...paymentSettings, collectionDiscountEnabled: e.target.checked })}
+                />
+                <span className="text-sm font-medium">Enable Collection Discount</span>
+              </label>
+
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Discount Percentage (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={paymentSettings.collectionDiscountPercent}
+                  onChange={(e) => setPaymentSettings({ ...paymentSettings, collectionDiscountPercent: parseInt(e.target.value) || 0 })}
+                  className="w-32 px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm font-mono"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-[#800020] hover:bg-[#9B1130] text-white shadow-md font-bold rounded uppercase tracking-wider"
+              >
+                Save Payment Settings
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ================= 9. RESTAURANT INFO ================= */}
+        {activeTab === 'restaurantInfo' && restaurantInfo && (
+          <form onSubmit={handleSaveRestaurantInfo} className="space-y-6 max-w-3xl text-xs">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#F5F1EA]">Restaurant Profile & Address</h2>
+              <p className="text-[#858078] mt-1">Official establishment information displayed in headers, footers, and maps.</p>
+            </div>
+
+            <div className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4">
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Restaurant Name</label>
+                <input
+                  type="text"
+                  value={restaurantInfo.name}
+                  onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Tagline</label>
+                <input
+                  type="text"
+                  value={restaurantInfo.tagline}
+                  onChange={(e) => setRestaurantInfo({ ...restaurantInfo, tagline: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[#858078] uppercase mb-1">Street Address</label>
+                  <input
+                    type="text"
+                    value={restaurantInfo.address}
+                    onChange={(e) => setRestaurantInfo({ ...restaurantInfo, address: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#858078] uppercase mb-1">Postcode</label>
+                  <input
+                    type="text"
+                    value={restaurantInfo.postcode}
+                    onChange={(e) => setRestaurantInfo({ ...restaurantInfo, postcode: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[#858078] uppercase mb-1">City / Village</label>
+                  <input
+                    type="text"
+                    value={restaurantInfo.city}
+                    onChange={(e) => setRestaurantInfo({ ...restaurantInfo, city: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#858078] uppercase mb-1">County</label>
+                  <input
+                    type="text"
+                    value={restaurantInfo.county}
+                    onChange={(e) => setRestaurantInfo({ ...restaurantInfo, county: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#858078] uppercase mb-1">Country</label>
+                  <input
+                    type="text"
+                    value={restaurantInfo.country}
+                    onChange={(e) => setRestaurantInfo({ ...restaurantInfo, country: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[#858078] uppercase mb-1">Telephone</label>
+                  <input
+                    type="text"
+                    value={restaurantInfo.phone}
+                    onChange={(e) => setRestaurantInfo({ ...restaurantInfo, phone: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[#858078] uppercase mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={restaurantInfo.email}
+                    onChange={(e) => setRestaurantInfo({ ...restaurantInfo, email: e.target.value })}
+                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-[#800020] hover:bg-[#9B1130] text-white shadow-md font-bold rounded uppercase tracking-wider"
+              >
+                Save Restaurant Profile
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ================= 10. HOMEPAGE MANAGEMENT ================= */}
+        {activeTab === 'homepage' && homepageSettings && (
+          <form onSubmit={handleSaveHomepageSettings} className="space-y-6 max-w-4xl text-xs">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#F5F1EA]">Homepage Content & Imagery</h2>
+              <p className="text-[#858078] mt-1">Configure hero headlines, introduction paragraphs, and promotional sections.</p>
+            </div>
+
+            <div className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4">
+              <h3 className="font-serif text-base font-bold text-[#FFFFFF]">Hero Section</h3>
+              
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Eyebrow Text</label>
+                <input
+                  type="text"
+                  value={homepageSettings.heroEyebrow}
+                  onChange={(e) => setHomepageSettings({ ...homepageSettings, heroEyebrow: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Main Heading</label>
+                <input
+                  type="text"
+                  value={homepageSettings.heroHeading}
+                  onChange={(e) => setHomepageSettings({ ...homepageSettings, heroHeading: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Supporting Description</label>
+                <textarea
+                  rows={2}
+                  value={homepageSettings.heroSupportingText}
+                  onChange={(e) => setHomepageSettings({ ...homepageSettings, heroSupportingText: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Hero Image URL</label>
+                <input
+                  type="text"
+                  value={homepageSettings.heroImageUrl}
+                  onChange={(e) => setHomepageSettings({ ...homepageSettings, heroImageUrl: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4">
+              <h3 className="font-serif text-base font-bold text-[#FFFFFF]">Introduction & Heritage Section</h3>
+              
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Section Heading</label>
+                <input
+                  type="text"
+                  value={homepageSettings.introHeading}
+                  onChange={(e) => setHomepageSettings({ ...homepageSettings, introHeading: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Paragraph 1</label>
+                <textarea
+                  rows={2}
+                  value={homepageSettings.introParagraph1}
+                  onChange={(e) => setHomepageSettings({ ...homepageSettings, introParagraph1: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#858078] uppercase mb-1">Paragraph 2</label>
+                <textarea
+                  rows={2}
+                  value={homepageSettings.introParagraph2}
+                  onChange={(e) => setHomepageSettings({ ...homepageSettings, introParagraph2: e.target.value })}
+                  className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="px-6 py-2.5 bg-[#800020] hover:bg-[#9B1130] text-white shadow-md font-bold rounded uppercase tracking-wider"
+            >
+              Save Homepage Content
+            </button>
+          </form>
+        )}
+
+      </main>
+    </div>
+  );
+};

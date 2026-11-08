@@ -1,0 +1,6 @@
+{
+  "name": "Rashoi Restaurant - The Indian Kitchen",
+  "description": "Experience authentic luxury Indian dining and takeaway at Rashoi Restaurant in Windlesham, Surrey. Table reservations, complete curated menu, and online ordering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

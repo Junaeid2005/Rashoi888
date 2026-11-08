@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cinzel", "Marcellus", serif;
+  --font-cinzel: "Cinzel", serif;
+  --font-marcellus: "Marcellus", serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+
+  --color-burgundy-primary: #800020;
+  --color-burgundy-vivid: #9B1130;
+  --color-burgundy-bright: #A51C30;
+  --color-burgundy-rose: #C22D47;
+  --color-burgundy-light: #E23D5B;
+  --color-burgundy-dark: #4A0013;
+
+  /* Elevated, warmer, brighter luxury dark palette (not pitch black) */
+  --color-bg-primary: #120E10;
+  --color-bg-secondary: #181316;
+  --color-bg-card: #20191D;
+  --color-bg-elevated: #292025;
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #E2DDD7;
+  --color-text-muted: #ABA29B;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: #120E10;
+  color: #FFFFFF;
+  font-family: var(--font-sans);
+}
+
+body {
+  background-color: #120E10;
+  color: #FFFFFF;
+  overflow-x: hidden;
+}
+
+/* Custom Burgundy Luxury Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #120E10;
+}
+::-webkit-scrollbar-thumb {
+  background: #3A141E;
+  border-radius: 4px;
+  border: 1px solid rgba(165, 28, 48, 0.35);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #800020;
+}
+
+/* Typography Enhancements */
+h1, h2, h3, h4, .font-serif {
+  font-family: "Cinzel", "Marcellus", serif;
+  letter-spacing: 0.02em;
+}
+
+.font-marcellus {
+  font-family: "Marcellus", serif;
+}
+
+.font-cinzel {
+  font-family: "Cinzel", serif;
+}
+
+/* Burgundy Ruby Gradient Text */
+.burgundy-gradient-text,
+.gold-gradient-text {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F7C5CF 45%, #E23D5B 75%, #800020 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.white-pure-text {
+  color: #FFFFFF !important;
+}
+
+/* Burgundy Red Glow Borders & Shadows */
+.burgundy-border-glow,
+.gold-border-glow {
+  border: 1px solid rgba(165, 28, 48, 0.45);
+  box-shadow: 0 0 25px -3px rgba(165, 28, 48, 0.35);
+}
+
+.burgundy-pill {
+  background-color: rgba(128, 0, 32, 0.35);
+  border: 1px solid rgba(165, 28, 48, 0.5);
+  color: #FFFFFF;
+}
+
+/* Navigation & Interactive Primary Buttons */
+.nav-burgundy-btn {
+  background: linear-gradient(135deg, #800020 0%, #A51C30 100%);
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 18px -2px rgba(165, 28, 48, 0.5);
+  transition: all 0.25s ease;
+}
+.nav-burgundy-btn:hover {
+  background: linear-gradient(135deg, #9B1130 0%, #C22D47 100%);
+  box-shadow: 0 6px 24px -2px rgba(194, 45, 71, 0.65);
+  transform: translateY(-1px);
+}
+
+/* Elevated Dish Cards in Warmer Luxury Dark Theme */
+.dish-card {
+  background-color: #1F181C;
+  border: 1px solid rgba(165, 28, 48, 0.25);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dish-card:hover {
+  border-color: rgba(194, 45, 71, 0.6);
+  box-shadow: 0 12px 32px -5px rgba(128, 0, 32, 0.35);
+  transform: translateY(-3px);
+}
