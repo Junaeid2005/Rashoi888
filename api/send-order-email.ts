@@ -1,5 +1,3 @@
-import type { IncomingMessage, ServerResponse } from 'http';
-
 interface EmailPayload {
   orderId: string;
   customerEmail: string;
