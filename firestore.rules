@@ -128,10 +128,5 @@ service cloud.firestore {
       ));
       allow delete: if isAdmin();
     }
-
-    // Email Dispatch Audit Logs
-    match /orderEmails/{emailId} {
-      allow read, write: if true;
-    }
   }
 }

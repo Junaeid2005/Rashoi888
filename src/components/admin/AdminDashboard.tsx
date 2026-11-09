@@ -34,7 +34,6 @@ import {
   savePaymentSettings,
   saveHomepageSettings,
 } from '../../services/dbService';
-import { sendOrderNotificationEmail, generateOrderMailtoLink } from '../../services/emailService';
 import {
   MenuCategory,
   MenuItem,
@@ -409,28 +408,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
   const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['orderStatus']) => {
     try {
       await updateOrderStatus(orderId, newStatus);
-      const targetOrder = orders.find((o) => o.orderId === orderId);
-
       setOrders((prev) =>
         prev.map((o) => (o.orderId === orderId ? { ...o, orderStatus: newStatus } : o))
       );
 
-      // Auto-dispatch email notification to customer
-      if (targetOrder && (newStatus === 'accepted' || newStatus === 'ready_for_collection' || newStatus === 'completed')) {
-        sendOrderNotificationEmail(targetOrder, newStatus as any).catch((e) =>
-          console.warn('Auto email dispatch note:', e)
-        );
-
-        if (newStatus === 'accepted') {
-          triggerToast(`Order #${orderId} Accepted! Confirmation email sent to ${targetOrder.customerEmail} ✉️`);
-        } else if (newStatus === 'ready_for_collection') {
-          triggerToast(`Order #${orderId} Ready! Collection email sent to ${targetOrder.customerEmail} ✉️`);
-        } else if (newStatus === 'completed') {
-          triggerToast(`Order #${orderId} Completed! Receipt email sent to ${targetOrder.customerEmail} ✉️`);
-        }
-      } else {
-        triggerToast(`Order ${orderId} status changed to ${newStatus}`);
-      }
+      const statusLabels: Record<string, string> = {
+        new: 'New',
+        accepted: 'Accepted by Kitchen',
+        preparing: 'Preparing in Kitchen',
+        ready_for_collection: 'Ready for Collection',
+        completed: 'Completed & Collected',
+        cancelled: 'Cancelled',
+      };
+      triggerToast(`Order #${orderId} status updated to ${statusLabels[newStatus] || newStatus}`);
     } catch (err) {
       alert('Failed to update order status');
     }
@@ -1019,30 +1009,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
                       </div>
 
                       <div className="flex items-center space-x-2">
-                        <a
-                          href={generateOrderMailtoLink(order, order.orderStatus)}
-                          className="px-2.5 py-1 rounded bg-[#291F24] border border-[#A51C30]/40 text-[#F5B8C3] hover:text-white text-[11px] flex items-center space-x-1 transition-colors"
-                          title={`Open pre-filled email to ${order.customerEmail}`}
-                        >
-                          <Mail className="w-3 h-3 text-[#E23D5B]" />
-                          <span>Email Customer</span>
-                        </a>
-
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            await sendOrderNotificationEmail(order, order.orderStatus === 'new' ? 'accepted' : order.orderStatus as any);
-                            triggerToast(`Notification email dispatched to ${order.customerEmail} ✉️`);
-                          }}
-                          className="px-2.5 py-1 rounded bg-[#800020]/30 border border-[#A51C30]/50 text-white hover:bg-[#800020] text-[11px] flex items-center space-x-1 cursor-pointer transition-colors"
-                          title="Re-send status update email to customer"
-                        >
-                          <RefreshCw className="w-3 h-3 text-[#F5B8C3]" />
-                          <span>Re-send Email</span>
-                        </button>
-
-                        <div className="text-xs text-[#858078] font-mono ml-2">
-                          Provider: {order.paymentProvider.toUpperCase()}
+                        <div className="text-xs text-[#858078] font-mono">
+                          Payment: <span className="text-[#F5B8C3] uppercase">{order.paymentProvider}</span>
                         </div>
                       </div>
                     </div>
