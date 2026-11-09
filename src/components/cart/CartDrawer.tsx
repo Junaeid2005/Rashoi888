@@ -142,6 +142,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
         return;
       }
 
+      // Cache order ID locally for instant client persistence
+      if (typeof window !== 'undefined') {
+        try {
+          const currentSaved: string[] = JSON.parse(localStorage.getItem('rashoi_user_orders') || '[]');
+          if (!currentSaved.includes(orderNumber)) {
+            currentSaved.unshift(orderNumber);
+            localStorage.setItem('rashoi_user_orders', JSON.stringify(currentSaved.slice(0, 30)));
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
       // Default: Pay upon Collection
       const newOrder = await createOrder(orderPayload);
 

@@ -23,6 +23,7 @@ import { ContactPage } from './components/contact/ContactPage';
 import { CartDrawer } from './components/cart/CartDrawer';
 import { FloatingCartBar } from './components/cart/FloatingCartBar';
 import { OrderSuccessModal } from './components/orders/OrderSuccessModal';
+import { CustomerOrderTracker } from './components/orders/CustomerOrderTracker';
 import { UserModal } from './components/auth/UserModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminGlobalNotifier } from './components/admin/AdminGlobalNotifier';
@@ -348,6 +349,16 @@ function MainApp() {
         <AdminGlobalNotifier
           currentView={currentView}
           onNavigateToAdmin={handleNavigateToAdmin}
+        />
+      )}
+
+      {/* Customer Live Real-Time Takeaway Order Tracker */}
+      {!isAdmin && (
+        <CustomerOrderTracker
+          onOpenOrders={() => {
+            setUserModalTab('orders');
+            setUserModalOpen(true);
+          }}
         />
       )}
 

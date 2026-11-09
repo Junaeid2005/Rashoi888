@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
-import { getUserReservations, confirmOrderReceiptByCustomer } from '../../services/dbService';
+import { getUserReservations, confirmOrderReceiptByCustomer, subscribeToUserOrders } from '../../services/dbService';
 import { playUserSuccessChime } from '../../utils/audioNotification';
 import { Reservation, Order } from '../../types';
 import {
@@ -76,47 +74,47 @@ export const UserModal: React.FC<UserModalProps> = ({
     }
     loadReservations();
 
-    // Set up real-time listener for user orders
+    // Set up scoped real-time listener for user orders
     setLoading(true);
-    const ordersQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
 
-    const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
-      const allUserOrders: Order[] = [];
+    const unsubscribe = subscribeToUserOrders(
+      user.uid,
+      user.email || undefined,
+      (updatedOrders) => {
+        if (!active) return;
 
-      snapshot.docs.forEach((docSnap) => {
-        const ord = docSnap.data() as Order;
-        if (ord.customerId === user.uid || (user.email && ord.customerEmail?.toLowerCase() === user.email.toLowerCase())) {
-          allUserOrders.push(ord);
-
-          // Detect status change in real-time (e.g. from new to accepted or ready_for_collection)
-          if (!initialLoadRef.current) {
+        // Detect status change in real-time
+        if (!initialLoadRef.current) {
+          updatedOrders.forEach((ord) => {
             const previousStatus = prevStatusesRef.current[ord.orderId];
             if (previousStatus && previousStatus !== ord.orderStatus) {
               playUserSuccessChime();
 
               if (ord.orderStatus === 'accepted') {
-                showToast(`🔔 Great news! Order #${ord.orderId} was ACCEPTED by the chef!`);
+                showToast(`🔔 Great news! Order #${ord.orderId} was ACCEPTED by the kitchen!`);
+              } else if (ord.orderStatus === 'preparing') {
+                showToast(`👨‍🍳 Order #${ord.orderId} is being prepared fresh in the kitchen!`);
               } else if (ord.orderStatus === 'ready_for_collection') {
                 showToast(`🎉 Order #${ord.orderId} is READY FOR COLLECTION at 58 Updown Hill!`);
               } else if (ord.orderStatus === 'completed') {
                 showToast(`✅ Order #${ord.orderId} was marked COMPLETED. Enjoy your meal!`);
               }
             }
-          }
-          prevStatusesRef.current[ord.orderId] = ord.orderStatus;
+          });
         }
-      });
 
-      setOrders(allUserOrders);
-      if (allUserOrders.length > 0 && !expandedOrderId) {
-        setExpandedOrderId(allUserOrders[0].orderId);
+        updatedOrders.forEach((ord) => {
+          prevStatusesRef.current[ord.orderId] = ord.orderStatus;
+        });
+
+        setOrders(updatedOrders);
+        if (updatedOrders.length > 0 && !expandedOrderId) {
+          setExpandedOrderId(updatedOrders[0].orderId);
+        }
+        setLoading(false);
+        initialLoadRef.current = false;
       }
-      setLoading(false);
-      initialLoadRef.current = false;
-    }, (err) => {
-      console.warn('Real-time customer orders listener error:', err);
-      setLoading(false);
-    });
+    );
 
     return () => {
       active = false;

@@ -9,6 +9,7 @@ import {
   query,
   where,
   orderBy,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { handleFirestoreError, OperationType } from '../firebase/errors';
@@ -696,6 +697,140 @@ export async function confirmOrderReceiptByCustomer(orderId: string): Promise<vo
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `${ORDERS_COL}/${orderId}`);
   }
+}
+
+export async function getUserOrders(customerId?: string, customerEmail?: string): Promise<Order[]> {
+  try {
+    if (!customerId && !customerEmail) return [];
+    
+    const ordersMap = new Map<string, Order>();
+
+    if (customerId) {
+      try {
+        const qUid = query(collection(db, ORDERS_COL), where('customerId', '==', customerId));
+        const snapUid = await getDocs(qUid);
+        snapUid.docs.forEach((d) => {
+          ordersMap.set(d.id, d.data() as Order);
+        });
+      } catch (e) {
+        console.warn('getUserOrders UID query error:', e);
+      }
+    }
+
+    if (customerEmail) {
+      try {
+        const qEmail = query(collection(db, ORDERS_COL), where('customerEmail', '==', customerEmail));
+        const snapEmail = await getDocs(qEmail);
+        snapEmail.docs.forEach((d) => {
+          ordersMap.set(d.id, d.data() as Order);
+        });
+      } catch (e) {
+        console.warn('getUserOrders Email query error:', e);
+      }
+    }
+
+    // Safety fallback: retrieve any locally saved order IDs
+    if (typeof window !== 'undefined') {
+      try {
+        const localIds: string[] = JSON.parse(localStorage.getItem('rashoi_user_orders') || '[]');
+        for (const localId of localIds) {
+          if (!ordersMap.has(localId)) {
+            const docSnap = await getDoc(doc(db, ORDERS_COL, localId));
+            if (docSnap.exists()) {
+              ordersMap.set(docSnap.id, docSnap.data() as Order);
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    const list = Array.from(ordersMap.values());
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return list;
+  } catch (error) {
+    console.warn('getUserOrders error:', error);
+    return [];
+  }
+}
+
+export function subscribeToUserOrders(
+  customerId: string | undefined,
+  customerEmail: string | undefined,
+  onOrders: (orders: Order[]) => void
+): () => void {
+  if (!customerId && !customerEmail) {
+    onOrders([]);
+    return () => {};
+  }
+
+  const ordersMap = new Map<string, Order>();
+  const unsubs: (() => void)[] = [];
+
+  const broadcast = () => {
+    const list = Array.from(ordersMap.values());
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    onOrders(list);
+  };
+
+  if (customerId) {
+    const qUid = query(collection(db, ORDERS_COL), where('customerId', '==', customerId));
+    const unsubUid = onSnapshot(
+      qUid,
+      (snapshot) => {
+        snapshot.docs.forEach((docSnap) => {
+          ordersMap.set(docSnap.id, docSnap.data() as Order);
+        });
+        broadcast();
+      },
+      (err) => {
+        console.warn('subscribeToUserOrders UID error:', err);
+      }
+    );
+    unsubs.push(unsubUid);
+  }
+
+  if (customerEmail) {
+    const qEmail = query(collection(db, ORDERS_COL), where('customerEmail', '==', customerEmail));
+    const unsubEmail = onSnapshot(
+      qEmail,
+      (snapshot) => {
+        snapshot.docs.forEach((docSnap) => {
+          ordersMap.set(docSnap.id, docSnap.data() as Order);
+        });
+        broadcast();
+      },
+      (err) => {
+        console.warn('subscribeToUserOrders Email error:', err);
+      }
+    );
+    unsubs.push(unsubEmail);
+  }
+
+  // Safety fallback for any local order IDs
+  if (typeof window !== 'undefined') {
+    try {
+      const localIds: string[] = JSON.parse(localStorage.getItem('rashoi_user_orders') || '[]');
+      localIds.slice(0, 20).forEach(async (id) => {
+        try {
+          const docSnap = await getDoc(doc(db, ORDERS_COL, id));
+          if (docSnap.exists()) {
+            ordersMap.set(docSnap.id, docSnap.data() as Order);
+            broadcast();
+          }
+        } catch (e) {
+          // ignore
+        }
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return () => {
+    unsubs.forEach((u) => u());
+  };
 }
 
 // ================= RESTAURANT SETTINGS =================

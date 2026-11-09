@@ -103,8 +103,8 @@ service cloud.firestore {
         request.resource.data.guests is number && request.resource.data.guests >= 1 && request.resource.data.guests <= 50 &&
         request.resource.data.status == 'pending';
       allow read: if isAdmin() || (isSignedIn() && (
-        ('customerId' in resource.data && resource.data.customerId == request.auth.uid) ||
-        (request.auth.token.email != null && resource.data.customerEmail == request.auth.token.email)
+        resource.data.get('customerId', '') == request.auth.uid ||
+        (request.auth.token.email != null && resource.data.get('customerEmail', '') == request.auth.token.email)
       ));
       allow update: if isAdmin();
       allow delete: if isAdmin();
@@ -119,12 +119,12 @@ service cloud.firestore {
         request.resource.data.orderStatus == 'new' &&
         (request.resource.data.paymentStatus == 'unpaid' || request.resource.data.paymentStatus == 'pending');
       allow read: if isAdmin() || (isSignedIn() && (
-        ('customerId' in resource.data && resource.data.customerId == request.auth.uid) ||
-        (request.auth.token.email != null && resource.data.customerEmail == request.auth.token.email)
+        resource.data.get('customerId', '') == request.auth.uid ||
+        (request.auth.token.email != null && resource.data.get('customerEmail', '') == request.auth.token.email)
       ));
       allow update: if isAdmin() || (isSignedIn() && (
-        ('customerId' in resource.data && resource.data.customerId == request.auth.uid) ||
-        (request.auth.token.email != null && resource.data.customerEmail == request.auth.token.email)
+        resource.data.get('customerId', '') == request.auth.uid ||
+        (request.auth.token.email != null && resource.data.get('customerEmail', '') == request.auth.token.email)
       ));
       allow delete: if isAdmin();
     }
