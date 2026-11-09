@@ -102,23 +102,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
     try {
       const orderNumber = 'RSH-' + Math.floor(100000 + Math.random() * 900000);
 
+      const orderPayload: any = {
+        orderId: orderNumber,
+        customerName: customerName.trim(),
+        customerEmail: customerEmail.trim(),
+        customerPhone: customerPhone.trim(),
+        orderType: 'collection',
+        items,
+        subtotal,
+        discount,
+        totalAmount: total,
+        currency: 'GBP',
+        paymentProvider: paymentMethod === 'stripe' && stripeActive ? 'stripe' : 'cash',
+      };
+      if (user?.uid) {
+        orderPayload.customerId = user.uid;
+      }
+      if (specialInstructions.trim()) {
+        orderPayload.specialInstructions = specialInstructions.trim();
+      }
+
       // If user selected Stripe and Stripe is configured in environment
       if (paymentMethod === 'stripe' && stripeActive) {
-        await createOrder({
-          orderId: orderNumber,
-          customerId: user?.uid,
-          customerName: customerName.trim(),
-          customerEmail: customerEmail.trim(),
-          customerPhone: customerPhone.trim(),
-          orderType: 'collection',
-          items,
-          subtotal,
-          discount,
-          totalAmount: total,
-          currency: 'GBP',
-          paymentProvider: 'stripe',
-          specialInstructions: specialInstructions.trim() || undefined,
-        });
+        await createOrder(orderPayload);
 
         const { checkoutUrl } = await createStripeCheckout({
           orderId: orderNumber,
@@ -136,21 +142,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
       }
 
       // Default: Pay upon Collection
-      const newOrder = await createOrder({
-        orderId: orderNumber,
-        customerId: user?.uid,
-        customerName: customerName.trim(),
-        customerEmail: customerEmail.trim(),
-        customerPhone: customerPhone.trim(),
-        orderType: 'collection',
-        items,
-        subtotal,
-        discount,
-        totalAmount: total,
-        currency: 'GBP',
-        paymentProvider: 'cash',
-        specialInstructions: specialInstructions.trim() || undefined,
-      });
+      const newOrder = await createOrder(orderPayload);
 
       clearCart();
       setIsCheckingOut(false);

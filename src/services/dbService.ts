@@ -50,6 +50,24 @@ const GALLERY_COL = 'gallery';
 const ORDERS_COL = 'orders';
 const SETTINGS_COL = 'restaurantSettings';
 
+/**
+ * Recursively sanitizes any payload destined for Firestore by stripping keys with undefined values.
+ * Firestore strictly rejects undefined field values.
+ */
+export function cleanFirestorePayload<T extends Record<string, any>>(data: T): T {
+  const cleaned: any = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined) {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        cleaned[key] = cleanFirestorePayload(value);
+      } else {
+        cleaned[key] = value;
+      }
+    }
+  }
+  return cleaned as T;
+}
+
 // Initialize and Seed Default Data if not yet present
 export async function seedInitialDataIfNeeded() {
   try {
@@ -256,8 +274,10 @@ export async function createReservation(res: Omit<Reservation, 'id' | 'createdAt
     createdAt: new Date().toISOString()
   };
 
+  const payload = cleanFirestorePayload(newReservation);
+
   try {
-    await setDoc(doc(db, RESERVATIONS_COL, reservationId), newReservation);
+    await setDoc(doc(db, RESERVATIONS_COL, reservationId), payload);
     return newReservation;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `${RESERVATIONS_COL}/${reservationId}`);
@@ -324,8 +344,10 @@ export async function sendCustomerMessage(msg: Omit<CustomerMessage, 'id' | 'sta
     createdAt: new Date().toISOString()
   };
 
+  const payload = cleanFirestorePayload(newMsg);
+
   try {
-    await setDoc(doc(db, MESSAGES_COL, msgId), newMsg);
+    await setDoc(doc(db, MESSAGES_COL, msgId), payload);
     return newMsg;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `${MESSAGES_COL}/${msgId}`);
@@ -442,8 +464,10 @@ export async function createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'o
     createdAt: new Date().toISOString()
   };
 
+  const payload = cleanFirestorePayload(newOrder);
+
   try {
-    await setDoc(doc(db, ORDERS_COL, docId), newOrder);
+    await setDoc(doc(db, ORDERS_COL, docId), payload);
     return newOrder;
   } catch (error) {
     handleFirestoreError(error, OperationType.CREATE, `${ORDERS_COL}/${docId}`);

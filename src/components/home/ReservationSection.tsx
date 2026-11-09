@@ -111,16 +111,22 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
 
     setSubmitting(true);
     try {
-      const res = await createReservation({
+      const reservationPayload: any = {
         customerName: name.trim(),
         customerEmail: email.trim(),
         customerPhone: phone.trim(),
         date,
         time,
         guests: Number(guests),
-        specialRequests: specialRequests.trim() || undefined,
-        customerId: user?.uid,
-      });
+      };
+      if (user?.uid) {
+        reservationPayload.customerId = user.uid;
+      }
+      if (specialRequests.trim()) {
+        reservationPayload.specialRequests = specialRequests.trim();
+      }
+
+      const res = await createReservation(reservationPayload);
 
       setBookingSuccess(`Your reservation request for ${guests} guests on ${date} at ${time} has been received! Ref: ${res.id}. We will confirm shortly.`);
       
