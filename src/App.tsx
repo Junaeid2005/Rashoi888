@@ -70,6 +70,7 @@ function MainApp() {
 
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [userModalTab, setUserModalTab] = useState<'reservations' | 'orders'>('orders');
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
   // URL query handling for Stripe returns
@@ -152,7 +153,14 @@ function MainApp() {
         currentView={currentView}
         setCurrentView={setCurrentView}
         onOpenBooking={handleOpenBooking}
-        onOpenUserModal={() => setUserModalOpen(true)}
+        onOpenUserModal={() => {
+          setUserModalTab('reservations');
+          setUserModalOpen(true);
+        }}
+        onOpenOrders={() => {
+          setUserModalTab('orders');
+          setUserModalOpen(true);
+        }}
       />
 
       {/* Stripe Payment Notification Banner if returning from Stripe */}
@@ -283,6 +291,7 @@ function MainApp() {
       <UserModal
         isOpen={userModalOpen}
         onClose={() => setUserModalOpen(false)}
+        initialTab={userModalTab}
       />
 
       {/* Auth Error Notification Modal */}

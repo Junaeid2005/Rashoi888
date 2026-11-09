@@ -122,8 +122,16 @@ service cloud.firestore {
         ('customerId' in resource.data && resource.data.customerId == request.auth.uid) ||
         (request.auth.token.email != null && resource.data.customerEmail == request.auth.token.email)
       ));
-      allow update: if isAdmin();
+      allow update: if isAdmin() || (isSignedIn() && (
+        ('customerId' in resource.data && resource.data.customerId == request.auth.uid) ||
+        (request.auth.token.email != null && resource.data.customerEmail == request.auth.token.email)
+      ));
       allow delete: if isAdmin();
+    }
+
+    // Email Dispatch Audit Logs
+    match /orderEmails/{emailId} {
+      allow read, write: if true;
     }
   }
 }

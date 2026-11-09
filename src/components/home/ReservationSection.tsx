@@ -350,14 +350,14 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
                           disabled={isTaken}
                           className={isTaken ? 'bg-[#181115] text-[#6E646A]' : 'bg-[#1F181C] text-[#FFFFFF]'}
                         >
-                          {t} {isTaken ? '(Reserved)' : '(Available)'}
+                          {t} {isTaken ? '(Fully Booked)' : '(Tables Available)'}
                         </option>
                       );
                     })}
                   </select>
                   {bookedTimes.includes(time) && (
                     <span className="text-[10px] text-amber-400 mt-1 block">
-                      This time slot is already reserved. Please select another time.
+                      All tables for this time are fully booked. Please select another time.
                     </span>
                   )}
                 </div>

@@ -254,14 +254,39 @@ export async function removeFullyBookedDate(dateStr: string): Promise<void> {
   }
 }
 
-// ================= TIME SLOT COLLISION LOCKING =================
+// ================= TIME SLOT COLLISION & MULTI-TABLE CAPACITY =================
+// Rashoi Restaurant has multiple dining tables, allowing multiple parties to reserve the same time slot.
+export const MAX_TABLES_PER_SLOT = 6;
+
+export interface TimeSlotStatus {
+  time: string;
+  bookedCount: number;
+  maxTables: number;
+  isFull: boolean;
+}
+
+/**
+ * Returns a list of time slots that have reached maximum table capacity (MAX_TABLES_PER_SLOT).
+ * If a time slot has only 1, 2, or 3 bookings, it is still available for other guests!
+ */
 export async function getBookedTimeSlotsForDate(dateStr: string): Promise<string[]> {
   try {
     const slotDoc = await getDoc(doc(db, BOOKED_SLOTS_COL, dateStr));
     if (slotDoc.exists()) {
       const data = slotDoc.data();
       const slots = data?.slots || {};
-      return Object.keys(slots).filter((time) => Boolean(slots[time]));
+      const fullSlots: string[] = [];
+
+      for (const [timeStr, val] of Object.entries(slots)) {
+        const reservations: string[] = Array.isArray(val)
+          ? val
+          : (typeof val === 'string' && val ? [val] : []);
+        
+        if (reservations.length >= MAX_TABLES_PER_SLOT) {
+          fullSlots.push(timeStr);
+        }
+      }
+      return fullSlots;
     }
     return [];
   } catch (error) {
@@ -270,9 +295,48 @@ export async function getBookedTimeSlotsForDate(dateStr: string): Promise<string
   }
 }
 
+/**
+ * Returns detailed status for each time slot on a given date (how many tables are booked).
+ */
+export async function getTimeSlotAvailabilityMap(dateStr: string): Promise<Record<string, { bookedCount: number; isFull: boolean }>> {
+  try {
+    const slotDoc = await getDoc(doc(db, BOOKED_SLOTS_COL, dateStr));
+    const result: Record<string, { bookedCount: number; isFull: boolean }> = {};
+    if (slotDoc.exists()) {
+      const data = slotDoc.data();
+      const slots = data?.slots || {};
+
+      for (const [timeStr, val] of Object.entries(slots)) {
+        const reservations: string[] = Array.isArray(val)
+          ? val
+          : (typeof val === 'string' && val ? [val] : []);
+        result[timeStr] = {
+          bookedCount: reservations.length,
+          isFull: reservations.length >= MAX_TABLES_PER_SLOT,
+        };
+      }
+    }
+    return result;
+  } catch (error) {
+    console.warn('Error reading time slot availability map:', error);
+    return {};
+  }
+}
+
 export async function isTimeSlotBooked(dateStr: string, timeStr: string): Promise<boolean> {
-  const bookedTimes = await getBookedTimeSlotsForDate(dateStr);
-  return bookedTimes.includes(timeStr);
+  try {
+    const slotDoc = await getDoc(doc(db, BOOKED_SLOTS_COL, dateStr));
+    if (!slotDoc.exists()) return false;
+    const slots = slotDoc.data()?.slots || {};
+    const val = slots[timeStr];
+    const reservations: string[] = Array.isArray(val)
+      ? val
+      : (typeof val === 'string' && val ? [val] : []);
+    return reservations.length >= MAX_TABLES_PER_SLOT;
+  } catch (err) {
+    console.warn('Error checking isTimeSlotBooked:', err);
+    return false;
+  }
 }
 
 export async function lockTimeSlot(dateStr: string, timeStr: string, reservationId: string): Promise<void> {
@@ -281,11 +345,17 @@ export async function lockTimeSlot(dateStr: string, timeStr: string, reservation
     const snap = await getDoc(slotDocRef);
     const existingSlots = snap.exists() ? (snap.data()?.slots || {}) : {};
     
+    const currentList: string[] = Array.isArray(existingSlots[timeStr])
+      ? existingSlots[timeStr]
+      : (typeof existingSlots[timeStr] === 'string' && existingSlots[timeStr] ? [existingSlots[timeStr]] : []);
+
+    const updatedList = Array.from(new Set([...currentList, reservationId]));
+
     await setDoc(slotDocRef, {
       date: dateStr,
       slots: {
         ...existingSlots,
-        [timeStr]: reservationId,
+        [timeStr]: updatedList,
       },
       updatedAt: new Date().toISOString(),
     }, { merge: true });
@@ -294,15 +364,26 @@ export async function lockTimeSlot(dateStr: string, timeStr: string, reservation
   }
 }
 
-export async function unlockTimeSlot(dateStr: string, timeStr: string): Promise<void> {
+export async function unlockTimeSlot(dateStr: string, timeStr: string, reservationId?: string): Promise<void> {
   try {
     const slotDocRef = doc(db, BOOKED_SLOTS_COL, dateStr);
     const snap = await getDoc(slotDocRef);
     if (!snap.exists()) return;
 
     const existingSlots = snap.data()?.slots || {};
+    const currentList: string[] = Array.isArray(existingSlots[timeStr])
+      ? existingSlots[timeStr]
+      : (typeof existingSlots[timeStr] === 'string' && existingSlots[timeStr] ? [existingSlots[timeStr]] : []);
+
     const updatedSlots = { ...existingSlots };
-    delete updatedSlots[timeStr];
+    if (reservationId) {
+      updatedSlots[timeStr] = currentList.filter((id) => id !== reservationId);
+      if (updatedSlots[timeStr].length === 0) {
+        delete updatedSlots[timeStr];
+      }
+    } else {
+      delete updatedSlots[timeStr];
+    }
 
     await setDoc(slotDocRef, {
       date: dateStr,
@@ -327,10 +408,10 @@ export async function createReservation(res: Omit<Reservation, 'id' | 'createdAt
     }
   }
 
-  // 2. Strict time-slot collision validation: ensure this specific time is not already booked
+  // 2. Multi-table capacity validation: check if max tables reached for this specific time
   const timeTaken = await isTimeSlotBooked(res.date, res.time);
   if (timeTaken) {
-    throw new Error(`The time slot (${res.time}) on ${res.date} has already been reserved. Please select another available time.`);
+    throw new Error(`All tables for the time slot (${res.time}) on ${res.date} are currently fully booked. Please select another available time.`);
   }
 
   const reservationId = 'res-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
@@ -345,7 +426,7 @@ export async function createReservation(res: Omit<Reservation, 'id' | 'createdAt
 
   try {
     await setDoc(doc(db, RESERVATIONS_COL, reservationId), payload);
-    // Lock the time slot so nobody else can book it while pending/confirmed
+    // Add reservation to time slot table list
     await lockTimeSlot(res.date, res.time, reservationId);
     return newReservation;
   } catch (error) {
@@ -397,8 +478,8 @@ export async function updateReservationStatus(id: string, status: Reservation['s
 
     if (existing && existing.date && existing.time) {
       if (status === 'completed' || status === 'cancelled') {
-        // Unlock time slot so it becomes available for new reservations
-        await unlockTimeSlot(existing.date, existing.time);
+        // Unlock this reservation's table so it becomes available for new reservations
+        await unlockTimeSlot(existing.date, existing.time, id);
       } else if (status === 'confirmed' || status === 'pending') {
         // Re-lock time slot
         await lockTimeSlot(existing.date, existing.time, id);
@@ -416,7 +497,7 @@ export async function deleteReservation(id: string): Promise<void> {
     if (resSnap.exists()) {
       const existing = resSnap.data() as Reservation;
       if (existing.date && existing.time) {
-        await unlockTimeSlot(existing.date, existing.time);
+        await unlockTimeSlot(existing.date, existing.time, id);
       }
     }
     await deleteDoc(resDocRef);
@@ -600,6 +681,17 @@ export async function updateOrderStatus(orderId: string, orderStatus: Order['ord
     await updateDoc(doc(db, ORDERS_COL, orderId), {
       orderStatus,
       updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${ORDERS_COL}/${orderId}`);
+  }
+}
+
+export async function confirmOrderReceiptByCustomer(orderId: string): Promise<void> {
+  try {
+    await updateDoc(doc(db, ORDERS_COL, orderId), {
+      customerConfirmedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `${ORDERS_COL}/${orderId}`);

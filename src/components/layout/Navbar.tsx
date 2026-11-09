@@ -18,6 +18,7 @@ interface NavbarProps {
   setCurrentView: (view: string) => void;
   onOpenBooking: () => void;
   onOpenUserModal: () => void;
+  onOpenOrders?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,6 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setCurrentView,
   onOpenBooking,
   onOpenUserModal,
+  onOpenOrders,
 }) => {
   const { user, isAdmin, signInWithGoogle, signOut } = useAuth();
   const { itemCount, setIsCartOpen } = useCart();
@@ -101,8 +103,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Right Action Icons & Buttons */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-2.5 sm:space-x-3.5">
             
+            {/* My Orders Button - Directly Accessible for Customers */}
+            {user && !isAdmin && (
+              <button
+                onClick={onOpenOrders || onOpenUserModal}
+                aria-label="Track Takeaway Orders"
+                className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-[#800020]/40 bg-[#141012] hover:bg-[#20141A] text-xs text-[#E2DDD7] hover:text-white transition-all cursor-pointer shadow-sm"
+                title="View your takeaway order status and tracking"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 text-[#E23D5B]" />
+                <span className="font-semibold tracking-wide">My Orders</span>
+              </button>
+            )}
+
             {/* Cart Trigger - Hidden for Administrators */}
             {!isAdmin && (
               <button

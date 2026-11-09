@@ -34,6 +34,7 @@ import {
   savePaymentSettings,
   saveHomepageSettings,
 } from '../../services/dbService';
+import { sendOrderNotificationEmail, generateOrderMailtoLink } from '../../services/emailService';
 import {
   MenuCategory,
   MenuItem,
@@ -79,6 +80,8 @@ import {
   VolumeX,
   Bell,
   BellRing,
+  ArrowLeft,
+  Mail,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -406,10 +409,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
   const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['orderStatus']) => {
     try {
       await updateOrderStatus(orderId, newStatus);
+      const targetOrder = orders.find((o) => o.orderId === orderId);
+
       setOrders((prev) =>
         prev.map((o) => (o.orderId === orderId ? { ...o, orderStatus: newStatus } : o))
       );
-      triggerToast(`Order ${orderId} status changed to ${newStatus}`);
+
+      // Auto-dispatch email notification to customer
+      if (targetOrder && (newStatus === 'accepted' || newStatus === 'ready_for_collection' || newStatus === 'completed')) {
+        sendOrderNotificationEmail(targetOrder, newStatus as any).catch((e) =>
+          console.warn('Auto email dispatch note:', e)
+        );
+
+        if (newStatus === 'accepted') {
+          triggerToast(`Order #${orderId} Accepted! Confirmation email sent to ${targetOrder.customerEmail} ✉️`);
+        } else if (newStatus === 'ready_for_collection') {
+          triggerToast(`Order #${orderId} Ready! Collection email sent to ${targetOrder.customerEmail} ✉️`);
+        } else if (newStatus === 'completed') {
+          triggerToast(`Order #${orderId} Completed! Receipt email sent to ${targetOrder.customerEmail} ✉️`);
+        }
+      } else {
+        triggerToast(`Order ${orderId} status changed to ${newStatus}`);
+      }
     } catch (err) {
       alert('Failed to update order status');
     }
@@ -547,25 +568,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
       <aside className="w-full md:w-64 bg-[#161114] border-r border-[#800020]/30 flex flex-col justify-between shrink-0">
         <div>
           {/* Header */}
-          <div className="p-6 border-b border-[#262626] flex items-center justify-between">
-            <div>
-              <span className="font-serif text-lg font-bold tracking-widest text-[#F5F1EA]">
-                RASHOI
-              </span>
-              <p className="text-[9px] uppercase tracking-widest text-[#F5B8C3]">
-                ADMIN CONTROL SUITE
-              </p>
+          <div className="p-5 border-b border-[#262626]">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="font-serif text-lg font-bold tracking-widest text-[#F5F1EA]">
+                  RASHOI
+                </span>
+                <p className="text-[9px] uppercase tracking-widest text-[#F5B8C3]">
+                  ADMIN CONTROL SUITE
+                </p>
+              </div>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={loadAllData}
+                  title="Refresh Data"
+                  className="p-1.5 text-[#858078] hover:text-[#FFFFFF] rounded"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center space-x-1">
-              
-              <button
-                onClick={loadAllData}
-                title="Refresh Data"
-                className="p-1.5 text-[#858078] hover:text-[#FFFFFF] rounded"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
+
+            {/* Prominent Back to Public Website Button right at the top */}
+            <button
+              type="button"
+              onClick={onReturnToSite}
+              className="mt-3.5 w-full py-2.5 px-3 rounded-xl bg-[#800020] hover:bg-[#9B1130] text-white text-xs font-bold tracking-wider uppercase flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer border border-[#A51C30]"
+              title="Return to Public Website"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#F5B8C3]" />
+              <span>Back to Website</span>
+            </button>
           </div>
 
           {/* Navigation Links */}
@@ -650,6 +683,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
           </div>
 
           <div className="flex items-center space-x-2 self-end sm:self-auto">
+            {/* Direct Back to Website Button in Top Bar */}
+            <button
+              onClick={onReturnToSite}
+              type="button"
+              className="px-3.5 py-1.5 rounded-xl bg-[#800020] hover:bg-[#9B1130] text-white text-xs font-bold tracking-wider uppercase flex items-center space-x-1.5 shadow-md cursor-pointer border border-[#A51C30] transition-all"
+              title="Return to Public Website"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-[#F5B8C3]" />
+              <span className="hidden sm:inline">Back to Website</span>
+              <span className="sm:hidden">Exit</span>
+            </button>
+
             {/* Audio Toggle */}
             <button
               onClick={toggleSound}
@@ -973,8 +1018,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
                         </select>
                       </div>
 
-                      <div className="text-xs text-[#858078] font-mono">
-                        Provider: {order.paymentProvider.toUpperCase()}
+                      <div className="flex items-center space-x-2">
+                        <a
+                          href={generateOrderMailtoLink(order, order.orderStatus)}
+                          className="px-2.5 py-1 rounded bg-[#291F24] border border-[#A51C30]/40 text-[#F5B8C3] hover:text-white text-[11px] flex items-center space-x-1 transition-colors"
+                          title={`Open pre-filled email to ${order.customerEmail}`}
+                        >
+                          <Mail className="w-3 h-3 text-[#E23D5B]" />
+                          <span>Email Customer</span>
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await sendOrderNotificationEmail(order, order.orderStatus === 'new' ? 'accepted' : order.orderStatus as any);
+                            triggerToast(`Notification email dispatched to ${order.customerEmail} ✉️`);
+                          }}
+                          className="px-2.5 py-1 rounded bg-[#800020]/30 border border-[#A51C30]/50 text-white hover:bg-[#800020] text-[11px] flex items-center space-x-1 cursor-pointer transition-colors"
+                          title="Re-send status update email to customer"
+                        >
+                          <RefreshCw className="w-3 h-3 text-[#F5B8C3]" />
+                          <span>Re-send Email</span>
+                        </button>
+
+                        <div className="text-xs text-[#858078] font-mono ml-2">
+                          Provider: {order.paymentProvider.toUpperCase()}
+                        </div>
                       </div>
                     </div>
                   </div>

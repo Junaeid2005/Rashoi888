@@ -129,6 +129,7 @@ export interface Order {
   createdAt: string;
   updatedAt?: string;
   paidAt?: string;
+  customerConfirmedAt?: string;
 }
 
 export interface RestaurantInfo {
