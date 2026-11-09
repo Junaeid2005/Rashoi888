@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Order } from '../../types';
+import { playUserSuccessChime } from '../../utils/audioNotification';
 import { CheckCircle2, Building, Clock, X } from 'lucide-react';
 
 interface OrderSuccessModalProps {
@@ -8,6 +9,12 @@ interface OrderSuccessModalProps {
 }
 
 export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, onClose }) => {
+  useEffect(() => {
+    if (order) {
+      playUserSuccessChime();
+    }
+  }, [order?.orderId]);
+
   if (!order) return null;
 
   return (

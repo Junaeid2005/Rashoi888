@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { createReservation, isDateFullyBooked } from '../../services/dbService';
-import { Calendar, Clock, Users, User, Mail, Phone, MessageSquare, AlertCircle, CheckCircle2, ShieldAlert, Lock, LogIn } from 'lucide-react';
+import { createReservation, isDateFullyBooked, getBookedTimeSlotsForDate } from '../../services/dbService';
+import { playUserSuccessChime, sendDesktopNotification } from '../../utils/audioNotification';
+import { Calendar, Clock, Users, User, Mail, Phone, MessageSquare, AlertCircle, CheckCircle2, ShieldAlert, Lock, LogIn, BellRing } from 'lucide-react';
 
 const GoogleIcon = () => (
   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -35,6 +36,11 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
 
   const todayStr = new Date().toISOString().split('T')[0];
 
+  const times = [
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+    '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'
+  ];
+
   const [name, setName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState('');
@@ -43,6 +49,7 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
   const [guests, setGuests] = useState(2);
   const [specialRequests, setSpecialRequests] = useState('');
 
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [dateError, setDateError] = useState<string | null>(null);
   const [isCheckingDate, setIsCheckingDate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -57,18 +64,26 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
     }
   }, [user]);
 
-  // Check fully booked whenever date changes
+  // Check fully booked and load reserved time slots whenever date changes
   useEffect(() => {
     let active = true;
-    async function checkDate() {
+    async function checkDateAndSlots() {
       if (!date) return;
       setIsCheckingDate(true);
       setDateError(null);
       setErrorMessage(null);
 
       try {
-        const isBlocked = await isDateFullyBooked(date);
-        if (active && isBlocked) {
+        const [isBlocked, bookedSlots] = await Promise.all([
+          isDateFullyBooked(date),
+          getBookedTimeSlotsForDate(date),
+        ]);
+
+        if (!active) return;
+
+        setBookedTimes(bookedSlots);
+
+        if (isBlocked) {
           if (date === todayStr) {
             setDateError(
               'Sorry, all tables are fully booked today. Please choose tomorrow or another available date.'
@@ -78,15 +93,25 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
               'Sorry, all tables are fully booked on your selected date. Please choose another available date.'
             );
           }
+        } else if (bookedSlots.length >= times.length) {
+          setDateError('All table time slots on this date are fully reserved. Please select another date.');
+        } else {
+          // If current selected time is already booked, pick the first available time slot
+          if (bookedSlots.includes(time)) {
+            const firstAvailable = times.find((t) => !bookedSlots.includes(t));
+            if (firstAvailable) {
+              setTime(firstAvailable);
+            }
+          }
         }
       } catch (err) {
-        console.warn('Error checking date fully booked:', err);
+        console.warn('Error checking date or booked slots:', err);
       } finally {
         if (active) setIsCheckingDate(false);
       }
     }
 
-    checkDate();
+    checkDateAndSlots();
     return () => {
       active = false;
     };
@@ -103,6 +128,11 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
     }
 
     if (dateError) return;
+
+    if (bookedTimes.includes(time)) {
+      setErrorMessage(`The time slot ${time} is already booked. Please choose a different available time.`);
+      return;
+    }
 
     if (!name.trim() || !email.trim() || !phone.trim()) {
       setErrorMessage('Please fill in your name, email and contact phone number.');
@@ -128,6 +158,17 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
 
       const res = await createReservation(reservationPayload);
 
+      // Play elegant user confirmation audio chime
+      playUserSuccessChime();
+
+      // Trigger desktop notification if granted
+      sendDesktopNotification('Rashoi Restaurant Table Confirmed', {
+        body: `Table reserved for ${guests} guests on ${date} at ${time}. Booking Ref: ${res.id}`,
+      });
+
+      // Update booked times locally
+      setBookedTimes((prev) => [...prev, time]);
+
       setBookingSuccess(`Your reservation request for ${guests} guests on ${date} at ${time} has been received! Ref: ${res.id}. We will confirm shortly.`);
       
       // Reset form fields
@@ -140,11 +181,6 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
       setSubmitting(false);
     }
   };
-
-  const times = [
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'
-  ];
 
   return (
     <section id="reservations" className="py-24 bg-[#120E10] relative">
@@ -305,12 +341,25 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
                     required
                     className="w-full px-4 py-3 rounded-xl bg-[#161013] border border-[#A51C30]/35 focus:border-[#E23D5B] text-[#FFFFFF] text-sm focus:outline-none transition-colors shadow-inner"
                   >
-                    {times.map((t) => (
-                      <option key={t} value={t} className="bg-[#1F181C] text-[#FFFFFF]">
-                        {t}
-                      </option>
-                    ))}
+                    {times.map((t) => {
+                      const isTaken = bookedTimes.includes(t);
+                      return (
+                        <option
+                          key={t}
+                          value={t}
+                          disabled={isTaken}
+                          className={isTaken ? 'bg-[#181115] text-[#6E646A]' : 'bg-[#1F181C] text-[#FFFFFF]'}
+                        >
+                          {t} {isTaken ? '(Reserved)' : '(Available)'}
+                        </option>
+                      );
+                    })}
                   </select>
+                  {bookedTimes.includes(time) && (
+                    <span className="text-[10px] text-amber-400 mt-1 block">
+                      This time slot is already reserved. Please select another time.
+                    </span>
+                  )}
                 </div>
 
                 {/* Guests */}

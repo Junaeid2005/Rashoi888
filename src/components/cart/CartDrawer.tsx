@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { createOrder } from '../../services/dbService';
 import { Order } from '../../types';
 import { isStripeOnlinePaymentActive, createStripeCheckout } from '../../services/stripeService';
+import { playUserSuccessChime, sendDesktopNotification } from '../../utils/audioNotification';
 import {
   X,
   Trash2,
@@ -143,6 +144,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
 
       // Default: Pay upon Collection
       const newOrder = await createOrder(orderPayload);
+
+      // Play elegant user confirmation audio chime
+      playUserSuccessChime();
+
+      // Send desktop notification
+      sendDesktopNotification('Rashoi Takeaway Order Confirmed', {
+        body: `Order #${orderNumber} for £${total.toFixed(2)} received. Ready in 25-35 mins for collection at 58 Updown Hill.`,
+      });
 
       clearCart();
       setIsCheckingOut(false);

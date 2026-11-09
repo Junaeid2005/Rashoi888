@@ -63,6 +63,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Booked Time Slots (Zero PII - prevents double bookings on same time)
+    match /bookedSlots/{dateId} {
+      allow read, write: if true;
+    }
+
     // Customer Reviews
     match /reviews/{reviewId} {
       allow read: if true;

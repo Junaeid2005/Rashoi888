@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+import { playAdminAlertChime, sendDesktopNotification } from '../../utils/audioNotification';
 import { useAuth } from '../../context/AuthContext';
 import {
   getCategories,
@@ -72,6 +75,10 @@ import {
   ShieldCheck,
   Save,
   Clock,
+  Volume2,
+  VolumeX,
+  Bell,
+  BellRing,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -127,6 +134,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('rashoi_admin_sound');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [liveAlert, setLiveAlert] = useState<{
+    id: string;
+    type: 'order' | 'reservation';
+    title: string;
+    subtitle: string;
+    amount?: string;
+    time: string;
+  } | null>(null);
+
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+  const isInitialOrdersRef = useRef<boolean>(true);
+
+  const knownReservationIdsRef = useRef<Set<string>>(new Set());
+  const isInitialReservationsRef = useRef<boolean>(true);
+
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rashoi_admin_sound', String(next));
+    }
+    if (next) {
+      playAdminAlertChime();
+      triggerToast('Audio alerts enabled 🔔');
+    } else {
+      triggerToast('Audio alerts muted 🔕');
+    }
+  };
+
+  const handleTestSound = () => {
+    playAdminAlertChime();
+    triggerToast('Playing test executive alert bell 🔔');
+  };
+
   const loadAllData = async () => {
     setLoading(true);
     try {
@@ -176,6 +225,105 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
   useEffect(() => {
     loadAllData();
   }, []);
+
+  // Real-time Firestore listeners for incoming Orders and Reservations
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    // Real-time listener for Orders
+    const ordersQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
+      const updatedOrders: Order[] = [];
+      let hasNewOrder = false;
+      let latestNewOrder: Order | null = null;
+
+      snapshot.docs.forEach((docSnap) => {
+        const ord = docSnap.data() as Order;
+        updatedOrders.push(ord);
+
+        if (!isInitialOrdersRef.current && !knownOrderIdsRef.current.has(ord.orderId)) {
+          if (ord.orderStatus === 'new') {
+            hasNewOrder = true;
+            latestNewOrder = ord;
+          }
+        }
+        knownOrderIdsRef.current.add(ord.orderId);
+      });
+
+      setOrders(updatedOrders);
+
+      if (isInitialOrdersRef.current) {
+        isInitialOrdersRef.current = false;
+      } else if (hasNewOrder && latestNewOrder) {
+        if (soundEnabled) {
+          playAdminAlertChime();
+        }
+        const o = latestNewOrder as Order;
+        setLiveAlert({
+          id: o.orderId,
+          type: 'order',
+          title: `New Takeaway Order #${o.orderId}`,
+          subtitle: `${o.customerName} ordered ${o.items.length} items (Collection)`,
+          amount: `£${o.totalAmount.toFixed(2)}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        });
+        sendDesktopNotification(`Rashoi: New Takeaway Order #${o.orderId}`, {
+          body: `${o.customerName} placed an order for £${o.totalAmount.toFixed(2)}.`,
+        });
+      }
+    }, (err) => {
+      console.warn('Real-time orders listener warning:', err);
+    });
+
+    // Real-time listener for Table Reservations
+    const reservationsQuery = query(collection(db, 'reservations'), orderBy('createdAt', 'desc'));
+    const unsubscribeReservations = onSnapshot(reservationsQuery, (snapshot) => {
+      const updatedReservations: Reservation[] = [];
+      let hasNewReservation = false;
+      let latestReservation: Reservation | null = null;
+
+      snapshot.docs.forEach((docSnap) => {
+        const res = docSnap.data() as Reservation;
+        updatedReservations.push(res);
+
+        if (!isInitialReservationsRef.current && !knownReservationIdsRef.current.has(res.id)) {
+          if (res.status === 'pending') {
+            hasNewReservation = true;
+            latestReservation = res;
+          }
+        }
+        knownReservationIdsRef.current.add(res.id);
+      });
+
+      setReservations(updatedReservations);
+
+      if (isInitialReservationsRef.current) {
+        isInitialReservationsRef.current = false;
+      } else if (hasNewReservation && latestReservation) {
+        if (soundEnabled) {
+          playAdminAlertChime();
+        }
+        const r = latestReservation as Reservation;
+        setLiveAlert({
+          id: r.id,
+          type: 'reservation',
+          title: `New Table Booking Request!`,
+          subtitle: `${r.customerName} requested table for ${r.guests} guests on ${r.date} at ${r.time}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        });
+        sendDesktopNotification(`Rashoi: Table Booking from ${r.customerName}`, {
+          body: `${r.guests} guests on ${r.date} at ${r.time}.`,
+        });
+      }
+    }, (err) => {
+      console.warn('Real-time reservations listener warning:', err);
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeReservations();
+    };
+  }, [isAdmin, soundEnabled]);
 
   const triggerToast = (msg: string) => {
     setSaveStatus(msg);
@@ -482,7 +630,112 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 bg-[#120E10] overflow-y-auto p-6 md:p-10 text-left">
+      <main className="flex-1 bg-[#120E10] overflow-y-auto p-6 md:p-10 text-left space-y-6">
+        
+        {/* Real-time Status & Audio Alert Controls Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 px-5 rounded-2xl bg-[#1A1418] border border-[#A51C30]/35 shadow-lg">
+          <div className="flex items-center space-x-2.5">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <div className="text-left">
+              <p className="text-xs font-bold text-[#FFFFFF] tracking-wide">
+                Live Cloud Sync Active
+              </p>
+              <p className="text-[10px] text-[#ABA29B]">
+                Listening in real-time for incoming table reservations & takeaway orders
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 self-end sm:self-auto">
+            {/* Audio Toggle */}
+            <button
+              onClick={toggleSound}
+              type="button"
+              className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center space-x-2 transition-all cursor-pointer ${
+                soundEnabled
+                  ? 'bg-[#291F24] border-[#E23D5B] text-white shadow-sm'
+                  : 'bg-[#181215] border-[#3A2A30] text-[#858078] hover:text-white'
+              }`}
+              title={soundEnabled ? 'Click to mute notification chime' : 'Click to enable notification chime'}
+            >
+              {soundEnabled ? (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-[#E23D5B]" />
+                  <span>Audio Chime: ON</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-3.5 h-3.5 text-[#858078]" />
+                  <span>Audio Chime: OFF</span>
+                </>
+              )}
+            </button>
+
+            {/* Test Sound */}
+            <button
+              onClick={handleTestSound}
+              type="button"
+              className="px-3 py-1.5 rounded-xl border border-[#A51C30]/40 bg-[#1F181C] hover:bg-[#291F24] text-[#E2DDD7] text-xs font-medium flex items-center space-x-1.5 cursor-pointer transition-colors"
+              title="Test the executive notification chime"
+            >
+              <Bell className="w-3.5 h-3.5 text-[#E23D5B]" />
+              <span>Test Bell</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Live Incoming Order / Reservation Alert Banner */}
+        {liveAlert && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#2B1019] via-[#1F181C] to-[#2B1019] border-2 border-[#E23D5B] shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-bounce-subtle">
+            <div className="flex items-center space-x-3.5 text-left">
+              <div className="w-12 h-12 rounded-xl bg-[#800020] border border-[#E23D5B] flex items-center justify-center text-white shrink-0 shadow-lg animate-pulse">
+                <BellRing className="w-6 h-6 text-[#F5B8C3]" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-[#E23D5B] text-white font-bold">
+                    JUST RECEIVED • {liveAlert.time}
+                  </span>
+                  {liveAlert.amount && (
+                    <span className="text-xs font-mono font-bold text-emerald-400">
+                      {liveAlert.amount}
+                    </span>
+                  )}
+                </div>
+                <h4 className="font-serif text-base sm:text-lg font-bold text-white mt-1">
+                  {liveAlert.title}
+                </h4>
+                <p className="text-xs text-[#E2DDD7] mt-0.5">
+                  {liveAlert.subtitle}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab(liveAlert.type === 'order' ? 'orders' : 'reservations');
+                  setLiveAlert(null);
+                }}
+                className="px-4 py-2 bg-[#800020] hover:bg-[#9B1130] text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                {liveAlert.type === 'order' ? 'View in Orders' : 'View in Bookings'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLiveAlert(null)}
+                className="p-2 text-[#ABA29B] hover:text-white rounded-xl hover:bg-[#291F24] cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
         
         {/* ================= 1. OVERVIEW ================= */}
         {activeTab === 'overview' && (
