@@ -85,9 +85,10 @@ import {
 
 interface AdminDashboardProps {
   onReturnToSite: () => void;
+  initialTab?: string;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, initialTab }) => {
   const { user, isAdmin, signOut } = useAuth();
   
   const [activeTab, setActiveTab] = useState<
@@ -104,7 +105,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite }
     | 'homepage'
     | 'restaurantInfo'
     | 'paymentSettings'
-  >('overview');
+  >((initialTab as any) || 'overview');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab as any);
+    }
+  }, [initialTab]);
 
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);

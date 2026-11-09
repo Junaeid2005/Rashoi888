@@ -25,6 +25,7 @@ import { FloatingCartBar } from './components/cart/FloatingCartBar';
 import { OrderSuccessModal } from './components/orders/OrderSuccessModal';
 import { UserModal } from './components/auth/UserModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { AdminGlobalNotifier } from './components/admin/AdminGlobalNotifier';
 import { Footer } from './components/layout/Footer';
 import {
   seedInitialDataIfNeeded,
@@ -140,9 +141,27 @@ function MainApp() {
     }
   };
 
+  const [adminInitialTab, setAdminInitialTab] = useState<string | undefined>(undefined);
+
+  const handleNavigateToAdmin = (targetTab?: string) => {
+    if (targetTab) {
+      setAdminInitialTab(targetTab);
+    }
+    setCurrentView('admin');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // If in Admin Dashboard view
   if (currentView === 'admin') {
-    return <AdminDashboard onReturnToSite={() => setCurrentView('home')} />;
+    return (
+      <AdminDashboard
+        initialTab={adminInitialTab}
+        onReturnToSite={() => {
+          setAdminInitialTab(undefined);
+          setCurrentView('home');
+        }}
+      />
+    );
   }
 
   return (
@@ -322,6 +341,14 @@ function MainApp() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Global Admin Live Order & Booking Notifier (Active everywhere on the website) */}
+      {isAdmin && (
+        <AdminGlobalNotifier
+          currentView={currentView}
+          onNavigateToAdmin={handleNavigateToAdmin}
+        />
       )}
 
     </div>
