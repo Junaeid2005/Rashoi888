@@ -178,18 +178,23 @@ function MainApp() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // If in Admin Dashboard view
-  if (currentView === 'admin') {
-    return (
-      <AdminDashboard
-        initialTab={adminInitialTab}
-        onReturnToSite={handleReturnToSite}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#080808] text-[#F5F1EA] flex flex-col font-sans">
+    <>
+      {/* Global Admin Live Order & Booking Notifier (Persistent 24/7 listener and sound chime) */}
+      {isAdmin && (
+        <AdminGlobalNotifier
+          currentView={currentView}
+          onNavigateToAdmin={handleNavigateToAdmin}
+        />
+      )}
+
+      {currentView === 'admin' ? (
+        <AdminDashboard
+          initialTab={adminInitialTab}
+          onReturnToSite={handleReturnToSite}
+        />
+      ) : (
+        <div className="min-h-screen bg-[#080808] text-[#F5F1EA] flex flex-col font-sans">
       
       {/* Navbar */}
       <Navbar
@@ -367,14 +372,6 @@ function MainApp() {
         </div>
       )}
 
-      {/* Global Admin Live Order & Booking Notifier (Active everywhere on the website) */}
-      {isAdmin && (
-        <AdminGlobalNotifier
-          currentView={currentView}
-          onNavigateToAdmin={handleNavigateToAdmin}
-        />
-      )}
-
       {/* Customer Live Real-Time Takeaway Order Tracker */}
       {!isAdmin && (
         <CustomerOrderTracker
@@ -386,6 +383,8 @@ function MainApp() {
       )}
 
     </div>
+      )}
+    </>
   );
 }
 

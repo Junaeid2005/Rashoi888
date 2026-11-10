@@ -275,9 +275,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
       if (isInitialOrdersRef.current) {
         isInitialOrdersRef.current = false;
       } else if (hasNewOrder && latestNewOrder) {
-        if (soundEnabled) {
-          playAdminAlertChime();
-        }
+        // Always play 5-second loud alert chime for incoming orders
+        playAdminAlertChime();
         const o = latestNewOrder as Order;
         setLiveAlert({
           id: o.orderId,
@@ -320,9 +319,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
       if (isInitialReservationsRef.current) {
         isInitialReservationsRef.current = false;
       } else if (hasNewReservation && latestReservation) {
-        if (soundEnabled) {
-          playAdminAlertChime();
-        }
+        // Always play 5-second loud alert chime for incoming reservations
+        playAdminAlertChime();
         const r = latestReservation as Reservation;
         setLiveAlert({
           id: r.id,
@@ -343,7 +341,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
       unsubscribeOrders();
       unsubscribeReservations();
     };
-  }, [isAdmin, soundEnabled]);
+  }, [isAdmin]);
 
   const triggerToast = (msg: string) => {
     setSaveStatus(msg);

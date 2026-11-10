@@ -159,9 +159,8 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
         } else if (hasNew && latestOrder) {
           const o = latestOrder as Order;
 
-          if (soundEnabled) {
-            playAdminAlertChime();
-          }
+          // Always play 5-second alert bell for admin on incoming order
+          playAdminAlertChime();
 
           sendDesktopNotification(`Rashoi: New Takeaway Order #${o.orderId}`, {
             body: `${o.customerName} placed an order for £${o.totalAmount.toFixed(2)} (${o.items.length} items).`,
@@ -214,9 +213,8 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
         } else if (hasNew && latestRes) {
           const r = latestRes as Reservation;
 
-          if (soundEnabled) {
-            playAdminAlertChime();
-          }
+          // Always play 5-second alert bell for admin on incoming reservation
+          playAdminAlertChime();
 
           sendDesktopNotification(`Rashoi: Table Booking from ${r.customerName}`, {
             body: `${r.guests} guests on ${r.date} at ${r.time}.`,
@@ -249,7 +247,7 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
       unsubscribeReservations();
       if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
     };
-  }, [isAdmin, soundEnabled]);
+  }, [isAdmin]);
 
   if (!isAdmin) return null;
 
