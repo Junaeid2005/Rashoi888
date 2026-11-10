@@ -142,13 +142,39 @@ function MainApp() {
     }
   };
 
+  useEffect(() => {
+    const handlePopState = () => {
+      const hash = window.location.hash;
+      const path = window.location.pathname;
+      if (path.includes('/admin') || hash === '#admin') {
+        setCurrentView('admin');
+      } else {
+        setCurrentView('home');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [adminInitialTab, setAdminInitialTab] = useState<string | undefined>(undefined);
 
   const handleNavigateToAdmin = (targetTab?: string) => {
     if (targetTab) {
       setAdminInitialTab(targetTab);
     }
+    if (window.location.hash !== '#admin') {
+      window.history.pushState({ view: 'admin' }, '', '#admin');
+    }
     setCurrentView('admin');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleReturnToSite = () => {
+    setAdminInitialTab(undefined);
+    if (window.location.hash === '#admin') {
+      window.history.pushState({ view: 'home' }, '', window.location.pathname);
+    }
+    setCurrentView('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -157,10 +183,7 @@ function MainApp() {
     return (
       <AdminDashboard
         initialTab={adminInitialTab}
-        onReturnToSite={() => {
-          setAdminInitialTab(undefined);
-          setCurrentView('home');
-        }}
+        onReturnToSite={handleReturnToSite}
       />
     );
   }

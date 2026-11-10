@@ -256,8 +256,8 @@ export async function removeFullyBookedDate(dateStr: string): Promise<void> {
 }
 
 // ================= TIME SLOT COLLISION & MULTI-TABLE CAPACITY =================
-// Rashoi Restaurant has multiple dining tables, allowing multiple parties to reserve the same time slot.
-export const MAX_TABLES_PER_SLOT = 6;
+// Rashoi Restaurant has unlimited table capacity per time slot.
+export const MAX_TABLES_PER_SLOT = 999999;
 
 export interface TimeSlotStatus {
   time: string;
@@ -267,33 +267,11 @@ export interface TimeSlotStatus {
 }
 
 /**
- * Returns a list of time slots that have reached maximum table capacity (MAX_TABLES_PER_SLOT).
- * If a time slot has only 1, 2, or 3 bookings, it is still available for other guests!
+ * Returns a list of time slots that are fully booked.
+ * Per restaurant policy, tables are unlimited per time slot so all time slots remain open!
  */
-export async function getBookedTimeSlotsForDate(dateStr: string): Promise<string[]> {
-  try {
-    const slotDoc = await getDoc(doc(db, BOOKED_SLOTS_COL, dateStr));
-    if (slotDoc.exists()) {
-      const data = slotDoc.data();
-      const slots = data?.slots || {};
-      const fullSlots: string[] = [];
-
-      for (const [timeStr, val] of Object.entries(slots)) {
-        const reservations: string[] = Array.isArray(val)
-          ? val
-          : (typeof val === 'string' && val ? [val] : []);
-        
-        if (reservations.length >= MAX_TABLES_PER_SLOT) {
-          fullSlots.push(timeStr);
-        }
-      }
-      return fullSlots;
-    }
-    return [];
-  } catch (error) {
-    console.warn('Error reading booked time slots:', error);
-    return [];
-  }
+export async function getBookedTimeSlotsForDate(_dateStr: string): Promise<string[]> {
+  return [];
 }
 
 /**
@@ -324,20 +302,8 @@ export async function getTimeSlotAvailabilityMap(dateStr: string): Promise<Recor
   }
 }
 
-export async function isTimeSlotBooked(dateStr: string, timeStr: string): Promise<boolean> {
-  try {
-    const slotDoc = await getDoc(doc(db, BOOKED_SLOTS_COL, dateStr));
-    if (!slotDoc.exists()) return false;
-    const slots = slotDoc.data()?.slots || {};
-    const val = slots[timeStr];
-    const reservations: string[] = Array.isArray(val)
-      ? val
-      : (typeof val === 'string' && val ? [val] : []);
-    return reservations.length >= MAX_TABLES_PER_SLOT;
-  } catch (err) {
-    console.warn('Error checking isTimeSlotBooked:', err);
-    return false;
-  }
+export async function isTimeSlotBooked(_dateStr: string, _timeStr: string): Promise<boolean> {
+  return false;
 }
 
 export async function lockTimeSlot(dateStr: string, timeStr: string, reservationId: string): Promise<void> {
@@ -486,6 +452,18 @@ export async function updateReservationStatus(id: string, status: Reservation['s
         await lockTimeSlot(existing.date, existing.time, id);
       }
     }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `${RESERVATIONS_COL}/${id}`);
+  }
+}
+
+export async function cancelUserReservation(id: string): Promise<void> {
+  try {
+    const resDocRef = doc(db, RESERVATIONS_COL, id);
+    await updateDoc(resDocRef, {
+      status: 'cancelled',
+      updatedAt: new Date().toISOString()
+    });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `${RESERVATIONS_COL}/${id}`);
   }

@@ -36,10 +36,11 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const times = [
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'
+  const lunchTimes = ['12:00', '12:30', '13:00', '13:30', '14:00', '14:30'];
+  const dinnerTimes = [
+    '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00'
   ];
+  const times = [...lunchTimes, ...dinnerTimes];
 
   const [name, setName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -341,25 +342,21 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
                     required
                     className="w-full px-4 py-3 rounded-xl bg-[#161013] border border-[#A51C30]/35 focus:border-[#E23D5B] text-[#FFFFFF] text-sm focus:outline-none transition-colors shadow-inner"
                   >
-                    {times.map((t) => {
-                      const isTaken = bookedTimes.includes(t);
-                      return (
-                        <option
-                          key={t}
-                          value={t}
-                          disabled={isTaken}
-                          className={isTaken ? 'bg-[#181115] text-[#6E646A]' : 'bg-[#1F181C] text-[#FFFFFF]'}
-                        >
-                          {t} {isTaken ? '(Fully Booked)' : '(Tables Available)'}
+                    <optgroup label="Lunch Service (12:00 PM – 2:30 PM)">
+                      {lunchTimes.map((t) => (
+                        <option key={t} value={t} className="bg-[#1F181C] text-[#FFFFFF]">
+                          {t} — Lunch
                         </option>
-                      );
-                    })}
+                      ))}
+                    </optgroup>
+                    <optgroup label="Dinner Service (5:30 PM – 11:00 PM)">
+                      {dinnerTimes.map((t) => (
+                        <option key={t} value={t} className="bg-[#1F181C] text-[#FFFFFF]">
+                          {t} — Dinner
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
-                  {bookedTimes.includes(time) && (
-                    <span className="text-[10px] text-amber-400 mt-1 block">
-                      All tables for this time are fully booked. Please select another time.
-                    </span>
-                  )}
                 </div>
 
                 {/* Guests */}

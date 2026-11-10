@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
-import { playAdminAlertChime, sendDesktopNotification } from '../../utils/audioNotification';
+import { playAdminAlertChime, sendDesktopNotification, getAdminAlertVolume, setAdminAlertVolume } from '../../utils/audioNotification';
 import { Order, Reservation } from '../../types';
 import {
   Bell,
@@ -101,6 +101,18 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
       }
     } catch (e) {
       console.warn('Desktop permission request note:', e);
+    }
+  };
+
+  const [volume, setVolume] = useState<number>(() => getAdminAlertVolume());
+
+  const handleVolumeChange = (delta: number) => {
+    const next = Math.max(0, Math.min(1, Math.round((volume + delta) * 100) / 100));
+    setVolume(next);
+    setAdminAlertVolume(next);
+    if (!soundEnabled && next > 0) {
+      setSoundEnabled(true);
+      if (typeof window !== 'undefined') localStorage.setItem('rashoi_admin_sound', 'true');
     }
   };
 
@@ -295,7 +307,7 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
                   title="Test chime"
                 >
                   <Bell className="w-3 h-3 text-[#E23D5B]" />
-                  <span>Test Bell</span>
+                  <span>Test Bell (5s)</span>
                 </button>
               </div>
 
@@ -332,19 +344,42 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
                 </span>
               </div>
 
-              {/* Sound Toggle */}
-              <button
-                type="button"
-                onClick={toggleSound}
-                className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-                  soundEnabled
-                    ? 'bg-[#800020] text-white'
-                    : 'bg-[#291F24] text-[#858078] hover:text-white'
-                }`}
-                title={soundEnabled ? 'Audio chime is ON. Click to mute.' : 'Audio chime is MUTED. Click to enable.'}
-              >
-                {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-white" /> : <VolumeX className="w-3.5 h-3.5" />}
-              </button>
+              {/* Sound Toggle & Volume Controls */}
+              <div className="flex items-center space-x-1 bg-[#120B0F] px-1.5 py-0.5 rounded-full border border-[#800020]/40">
+                <button
+                  type="button"
+                  onClick={toggleSound}
+                  className={`p-1 rounded-full transition-colors cursor-pointer ${
+                    soundEnabled
+                      ? 'bg-[#800020] text-white'
+                      : 'bg-[#291F24] text-[#858078] hover:text-white'
+                  }`}
+                  title={soundEnabled ? 'Audio chime is ON. Click to mute.' : 'Audio chime is MUTED. Click to enable.'}
+                >
+                  {soundEnabled ? <Volume2 className="w-3 h-3 text-white" /> : <VolumeX className="w-3 h-3" />}
+                </button>
+                {soundEnabled && (
+                  <div className="flex items-center space-x-1 text-[10px] text-[#F5B8C3] font-mono pr-1">
+                    <button
+                      type="button"
+                      onClick={() => handleVolumeChange(-0.1)}
+                      className="px-1 text-[#ABA29B] hover:text-white font-bold cursor-pointer"
+                      title="Decrease volume"
+                    >
+                      -
+                    </button>
+                    <span>{Math.round(volume * 100)}%</span>
+                    <button
+                      type="button"
+                      onClick={() => handleVolumeChange(0.1)}
+                      className="px-1 text-[#ABA29B] hover:text-white font-bold cursor-pointer"
+                      title="Increase volume"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Desktop notification prompt if not yet granted */}
               {!hasRequestedPermission && (

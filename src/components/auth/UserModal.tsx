@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { getUserReservations, confirmOrderReceiptByCustomer, subscribeToUserOrders } from '../../services/dbService';
+import { getUserReservations, confirmOrderReceiptByCustomer, subscribeToUserOrders, cancelUserReservation } from '../../services/dbService';
 import { playUserSuccessChime } from '../../utils/audioNotification';
 import { Reservation, Order } from '../../types';
 import {
@@ -139,6 +139,27 @@ export const UserModal: React.FC<UserModalProps> = ({
       alert(err.message || 'Could not confirm order receipt');
     } finally {
       setConfirmingId(null);
+    }
+  };
+
+  const [cancellingResId, setCancellingResId] = useState<string | null>(null);
+
+  const handleCancelReservation = async (resId: string, date: string, time: string) => {
+    if (!window.confirm(`Are you sure you want to cancel your table reservation for ${date} at ${time}?`)) {
+      return;
+    }
+    setCancellingResId(resId);
+    try {
+      await cancelUserReservation(resId);
+      playUserSuccessChime();
+      showToast('Your table reservation was cancelled successfully.');
+      setReservations((prev) =>
+        prev.map((r) => (r.id === resId ? { ...r, status: 'cancelled' } : r))
+      );
+    } catch (err: any) {
+      alert(err.message || 'Failed to cancel reservation');
+    } finally {
+      setCancellingResId(null);
     }
   };
 
@@ -287,32 +308,22 @@ export const UserModal: React.FC<UserModalProps> = ({
                             {/* Prominent Status Badge */}
                             {ord.orderStatus === 'new' && (
                               <span className="px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 text-[11px] font-bold uppercase border border-blue-500/30">
-                                ⏳ Order Received
+                                ⏳ Order Received (Pending Accept)
                               </span>
                             )}
                             {isAccepted && (
                               <span className="px-3 py-0.5 rounded-full bg-[#800020] text-white text-[11px] font-bold uppercase border border-[#E23D5B] shadow-sm animate-pulse">
-                                👨‍🍳 Accepted by Kitchen
-                              </span>
-                            )}
-                            {isPreparing && (
-                              <span className="px-3 py-0.5 rounded-full bg-amber-950 text-amber-300 text-[11px] font-bold uppercase border border-amber-500/40">
-                                🔥 Freshly Cooking
+                                👨‍🍳 Order Accepted
                               </span>
                             )}
                             {isReady && (
                               <span className="px-3 py-0.5 rounded-full bg-emerald-950 text-emerald-300 text-[11px] font-bold uppercase border border-emerald-400 shadow-md animate-pulse">
-                                🎉 Ready for Collection!
+                                🎉 Ready for Collection
                               </span>
                             )}
                             {isCompleted && (
                               <span className="px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-300 text-[11px] font-semibold uppercase">
-                                ✅ Completed & Collected
-                              </span>
-                            )}
-                            {isCancelled && (
-                              <span className="px-2.5 py-0.5 rounded-full bg-red-950 text-red-300 text-[11px] font-semibold uppercase">
-                                ✕ Cancelled
+                                ✅ Completed
                               </span>
                             )}
                           </div>
@@ -348,61 +359,48 @@ export const UserModal: React.FC<UserModalProps> = ({
                               Live Kitchen Progress Tracker
                             </p>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2">
-                              {/* Step 1: Placed */}
-                              <div className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
-                                ord.orderStatus === 'new' || isAccepted || isPreparing || isReady || isCompleted
-                                  ? 'bg-[#291720] border-[#E23D5B] text-white'
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                              {/* Step 1: Order Accepted */}
+                              <div className={`p-3.5 rounded-xl border flex items-center space-x-3 ${
+                                isAccepted || isReady || isCompleted
+                                  ? 'bg-[#291720] border-[#E23D5B] text-white shadow-sm'
                                   : 'bg-[#181115] border-[#2D2228] text-[#6E646A]'
                               }`}>
-                                <Clock className="w-4 h-4 text-[#E23D5B] shrink-0" />
+                                <ChefHat className={`w-5 h-5 shrink-0 ${isAccepted || isReady || isCompleted ? 'text-[#E23D5B]' : 'text-[#6E646A]'}`} />
                                 <div>
-                                  <p className="font-bold">1. Order Placed</p>
-                                  <p className="text-[10px] text-[#A59E98]">Transmitted</p>
-                                </div>
-                              </div>
-
-                              {/* Step 2: Accepted */}
-                              <div className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
-                                isAccepted || isPreparing || isReady || isCompleted
-                                  ? 'bg-[#291720] border-[#E23D5B] text-white'
-                                  : 'bg-[#181115] border-[#2D2228] text-[#6E646A]'
-                              }`}>
-                                <ChefHat className="w-4 h-4 text-[#E23D5B] shrink-0" />
-                                <div>
-                                  <p className="font-bold">2. Accepted</p>
-                                  <p className="text-[10px] text-[#A59E98]">
-                                    {isAccepted || isPreparing || isReady || isCompleted ? 'Confirmed by Chef' : 'In Queue'}
+                                  <p className="font-bold text-sm">1. Order Accepted</p>
+                                  <p className="text-[11px] text-[#A59E98]">
+                                    {isAccepted || isReady || isCompleted ? 'Confirmed by Kitchen' : 'Pending Kitchen Accept'}
                                   </p>
                                 </div>
                               </div>
 
-                              {/* Step 3: Ready */}
-                              <div className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
+                              {/* Step 2: Ready for Collection */}
+                              <div className={`p-3.5 rounded-xl border flex items-center space-x-3 ${
                                 isReady || isCompleted
-                                  ? 'bg-emerald-950/60 border-emerald-500 text-emerald-200'
+                                  ? 'bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-sm'
                                   : 'bg-[#181115] border-[#2D2228] text-[#6E646A]'
                               }`}>
-                                <ShoppingBag className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <ShoppingBag className={`w-5 h-5 shrink-0 ${isReady || isCompleted ? 'text-emerald-400' : 'text-[#6E646A]'}`} />
                                 <div>
-                                  <p className="font-bold">3. Ready</p>
-                                  <p className="text-[10px] text-[#A59E98]">
-                                    {isReady ? 'At Counter Now!' : isCompleted ? 'Packed' : 'Approx 25-35m'}
+                                  <p className="font-bold text-sm">2. Ready for Collection</p>
+                                  <p className="text-[11px] text-[#A59E98]">
+                                    {isReady ? 'Packed at Counter Now!' : isCompleted ? 'Packed' : 'Approx 25-35 mins'}
                                   </p>
                                 </div>
                               </div>
 
-                              {/* Step 4: Completed */}
-                              <div className={`p-3 rounded-xl border flex items-center space-x-2.5 ${
+                              {/* Step 3: Completed */}
+                              <div className={`p-3.5 rounded-xl border flex items-center space-x-3 ${
                                 isCompleted
-                                  ? 'bg-emerald-950/60 border-emerald-500 text-emerald-200'
+                                  ? 'bg-emerald-950/70 border-emerald-500 text-emerald-200 shadow-sm'
                                   : 'bg-[#181115] border-[#2D2228] text-[#6E646A]'
                               }`}>
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <CheckCircle2 className={`w-5 h-5 shrink-0 ${isCompleted ? 'text-emerald-400' : 'text-[#6E646A]'}`} />
                                 <div>
-                                  <p className="font-bold">4. Completed</p>
-                                  <p className="text-[10px] text-[#A59E98]">
-                                    {isCompleted ? 'Collected' : 'Pending Pickup'}
+                                  <p className="font-bold text-sm">3. Completed</p>
+                                  <p className="text-[11px] text-[#A59E98]">
+                                    {isCompleted ? 'Collected & Confirmed' : 'Pending Customer Pickup'}
                                   </p>
                                 </div>
                               </div>
@@ -601,9 +599,24 @@ export const UserModal: React.FC<UserModalProps> = ({
                       )}
                     </div>
 
-                    <div className="text-left sm:text-right text-[11px] text-[#A59E98]">
-                      <p>Rashoi Restaurant</p>
-                      <p>58 Updown Hill, Windlesham</p>
+                    <div className="flex flex-col sm:items-end justify-between gap-2.5">
+                      <div className="text-left sm:text-right text-[11px] text-[#A59E98]">
+                        <p>Rashoi Restaurant</p>
+                        <p>58 Updown Hill, Windlesham</p>
+                      </div>
+
+                      {res.status !== 'cancelled' && res.status !== 'completed' && (
+                        <button
+                          type="button"
+                          disabled={cancellingResId === res.id}
+                          onClick={() => handleCancelReservation(res.id, res.date, res.time)}
+                          className="px-3 py-1.5 rounded-xl bg-red-950/70 hover:bg-red-900 border border-red-500/50 text-red-200 text-xs font-semibold cursor-pointer transition-colors flex items-center space-x-1.5 self-start sm:self-end"
+                          title="Cancel this table reservation"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>{cancellingResId === res.id ? 'Cancelling...' : 'Cancel Booking'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

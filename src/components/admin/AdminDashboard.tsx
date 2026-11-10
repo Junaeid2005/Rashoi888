@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { playAdminAlertChime, sendDesktopNotification } from '../../utils/audioNotification';
+import { playAdminAlertChime, sendDesktopNotification, getAdminAlertVolume, setAdminAlertVolume } from '../../utils/audioNotification';
 import { useAuth } from '../../context/AuthContext';
 import {
   getCategories,
@@ -151,6 +151,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
     return true;
   });
 
+  const [volume, setVolume] = useState<number>(() => getAdminAlertVolume());
+
+  const handleVolumeChange = (newVol: number) => {
+    setVolume(newVol);
+    setAdminAlertVolume(newVol);
+    if (!soundEnabled && newVol > 0) {
+      setSoundEnabled(true);
+      if (typeof window !== 'undefined') localStorage.setItem('rashoi_admin_sound', 'true');
+    }
+  };
+
   const [liveAlert, setLiveAlert] = useState<{
     id: string;
     type: 'order' | 'reservation';
@@ -174,7 +185,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
     }
     if (next) {
       playAdminAlertChime();
-      triggerToast('Audio alerts enabled 🔔');
+      triggerToast('Audio alerts enabled 🔔 (5-second chime)');
     } else {
       triggerToast('Audio alerts muted 🔕');
     }
@@ -182,7 +193,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
 
   const handleTestSound = () => {
     playAdminAlertChime();
-    triggerToast('Playing test executive alert bell 🔔');
+    triggerToast(`Playing 5-second test bell at ${Math.round(volume * 100)}% volume 🔔`);
   };
 
   const loadAllData = async () => {
@@ -420,14 +431,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
       );
 
       const statusLabels: Record<string, string> = {
-        new: 'New',
-        accepted: 'Accepted by Kitchen',
-        preparing: 'Preparing in Kitchen',
+        new: 'Order Received',
+        accepted: 'Order Accepted',
         ready_for_collection: 'Ready for Collection',
-        completed: 'Completed & Collected',
-        cancelled: 'Cancelled',
+        completed: 'Completed',
       };
-      triggerToast(`Order #${orderId} status updated to ${statusLabels[newStatus] || newStatus}`);
+      triggerToast(`Order #${orderId} status: ${statusLabels[newStatus] || newStatus}`);
     } catch (err) {
       alert('Failed to update order status');
     }
@@ -706,25 +715,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
               {soundEnabled ? (
                 <>
                   <Volume2 className="w-3.5 h-3.5 text-[#E23D5B]" />
-                  <span>Audio Chime: ON</span>
+                  <span>Chime: ON</span>
                 </>
               ) : (
                 <>
                   <VolumeX className="w-3.5 h-3.5 text-[#858078]" />
-                  <span>Audio Chime: OFF</span>
+                  <span>Chime: OFF</span>
                 </>
               )}
             </button>
+
+            {/* Volume Slider */}
+            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#1A1216] border border-[#A51C30]/40 text-xs shadow-inner">
+              <span className="text-[11px] text-[#A59E98] hidden sm:inline font-mono">Vol:</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={soundEnabled ? volume : 0}
+                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                className="w-16 sm:w-24 accent-[#E23D5B] cursor-pointer"
+                title={`Notification Chime Volume: ${Math.round(volume * 100)}%`}
+              />
+              <span className="text-[11px] font-mono text-[#F5B8C3] font-bold w-7 text-right">
+                {soundEnabled ? `${Math.round(volume * 100)}%` : '0%'}
+              </span>
+            </div>
 
             {/* Test Sound */}
             <button
               onClick={handleTestSound}
               type="button"
               className="px-3 py-1.5 rounded-xl border border-[#A51C30]/40 bg-[#1F181C] hover:bg-[#291F24] text-[#E2DDD7] text-xs font-medium flex items-center space-x-1.5 cursor-pointer transition-colors"
-              title="Test the executive notification chime"
+              title="Test the 5-second executive alert chime at current volume"
             >
               <Bell className="w-3.5 h-3.5 text-[#E23D5B]" />
-              <span>Test Bell</span>
+              <span className="hidden sm:inline">Test Bell (5s)</span>
+              <span className="sm:hidden">Test</span>
             </button>
           </div>
         </div>
@@ -1004,14 +1032,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                         <select
                           value={order.orderStatus}
                           onChange={(e) => handleUpdateOrderStatus(order.orderId, e.target.value as any)}
-                          className="px-3 py-1.5 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-xs focus:outline-none focus:border-[#A51C30]"
+                          className="px-3 py-1.5 rounded bg-[#161114] border border-[#A51C30]/50 text-[#F5F1EA] text-xs focus:outline-none focus:border-[#E23D5B] font-medium"
                         >
-                          <option value="new">New</option>
-                          <option value="accepted">Accepted</option>
-                          <option value="preparing">Preparing</option>
+                          {order.orderStatus === 'new' && (
+                            <option value="new">⏳ Order Received (Pending)</option>
+                          )}
+                          <option value="accepted">Order Accepted</option>
                           <option value="ready_for_collection">Ready for Collection</option>
                           <option value="completed">Completed</option>
-                          <option value="cancelled">Cancelled</option>
                         </select>
                       </div>
 

@@ -58,39 +58,79 @@ export function playUserSuccessChime(): void {
   }
 }
 
+export function getAdminAlertVolume(): number {
+  if (typeof window === 'undefined') return 0.9;
+  try {
+    const saved = localStorage.getItem('rashoi_admin_volume');
+    if (saved !== null) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) return parsed;
+    }
+  } catch (e) {}
+  return 0.9;
+}
+
+export function setAdminAlertVolume(volume: number): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const clamped = Math.max(0, Math.min(1, volume));
+    localStorage.setItem('rashoi_admin_volume', clamped.toFixed(2));
+  } catch (e) {}
+}
+
 /**
- * Play an attention-grabbing executive bell for the Admin Dashboard
- * when a new order or table reservation arrives.
- * Double ding: 880Hz (A5) -> 1046.5Hz (C6) -> 1318.5Hz (E6) with harmonic resonance.
+ * Play a high-visibility, 5-second continuous executive restaurant alert bell.
+ * Designed so staff members and managers can reliably hear incoming orders/bookings.
+ * Multi-pulse harmonic chime lasting a full 5.0 seconds with adjustable volume.
  */
-export function playAdminAlertChime(): void {
+export function playAdminAlertChime(volumeOverride?: number): void {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
 
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const currentVolume = volumeOverride !== undefined ? volumeOverride : getAdminAlertVolume();
+    if (currentVolume <= 0.01) return; // Muted
+
     const now = ctx.currentTime;
-    const notes = [
-      { freq: 880.00, time: 0.00, dur: 0.28, type: 'triangle' as OscillatorType }, // A5
-      { freq: 1108.73, time: 0.16, dur: 0.35, type: 'sine' as OscillatorType },    // C#6
-      { freq: 1318.51, time: 0.30, dur: 0.65, type: 'sine' as OscillatorType },    // E6
-    ];
+    // Base loudness scaling factor (boosted for restaurant environment)
+    const maxGain = 0.85 * currentVolume;
 
-    notes.forEach(({ freq, time, dur, type }) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+    // 4 successive bell chime cycles spaced across 5.0 seconds
+    const cycles = [0.0, 1.25, 2.50, 3.75];
 
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, now + time);
+    cycles.forEach((cycleStart, index) => {
+      const isFinal = index === cycles.length - 1;
+      const decayDur = isFinal ? 1.25 : 0.85;
 
-      gain.gain.setValueAtTime(0.001, now + time);
-      gain.gain.linearRampToValueAtTime(0.35, now + time + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur);
+      const harmonics = [
+        { freq: 880.00, offset: 0.00, dur: decayDur, type: 'triangle' as OscillatorType, gainMult: 0.9 }, // Fundamental A5
+        { freq: 1108.73, offset: 0.08, dur: decayDur * 0.9, type: 'sine' as OscillatorType, gainMult: 0.8 }, // C#6
+        { freq: 1318.51, offset: 0.16, dur: decayDur, type: 'sine' as OscillatorType, gainMult: 0.85 }, // E6
+        { freq: 1760.00, offset: 0.22, dur: decayDur * 0.8, type: 'triangle' as OscillatorType, gainMult: 0.7 }, // A6 sparkle
+      ];
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      harmonics.forEach(({ freq, offset, dur, type, gainMult }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-      osc.start(now + time);
-      osc.stop(now + time + dur + 0.05);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now + cycleStart + offset);
+
+        const targetGain = maxGain * gainMult;
+        gain.gain.setValueAtTime(0.001, now + cycleStart + offset);
+        gain.gain.linearRampToValueAtTime(targetGain, now + cycleStart + offset + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + cycleStart + offset + dur);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now + cycleStart + offset);
+        osc.stop(now + cycleStart + offset + dur + 0.05);
+      });
     });
   } catch (err) {
     console.warn('Admin audio alert error:', err);
