@@ -103,18 +103,36 @@ export const ContactPage: React.FC<ContactPageProps> = ({ info }) => {
               </div>
             </div>
 
-            <div className="p-8 rounded-2xl bg-[#1F181C] border border-[#A51C30]/30 shadow-xl text-left">
-              <div className="flex items-center space-x-2 text-[#E23D5B] mb-3">
-                <Clock className="w-4 h-4" />
-                <h3 className="font-serif text-base font-bold text-[#FFFFFF]">Service Hours</h3>
+            <div className="p-8 rounded-2xl bg-[#1F181C] border border-[#A51C30]/30 shadow-xl text-left space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                <div className="flex items-center space-x-2 text-[#E23D5B]">
+                  <Clock className="w-4 h-4" />
+                  <h3 className="font-serif text-base font-bold text-[#FFFFFF]">Opening Hours</h3>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#800020] text-[#FFFFFF] text-[10px] font-bold uppercase tracking-wider border border-[#E23D5B]/40">
+                  Open 7 Days a Week
+                </span>
               </div>
               <div className="space-y-2 text-xs sm:text-sm">
-                {info.openingHours.map((h, i) => (
-                  <div key={i} className="flex justify-between border-b border-[#A51C30]/15 pb-1.5 last:border-none">
-                    <span className="text-[#ABA29B] font-medium">{h.days}</span>
-                    <span className="text-[#FFFFFF] font-semibold">{h.hours}</span>
-                  </div>
-                ))}
+                {info.openingHours && info.openingHours.length > 0 ? (
+                  info.openingHours.map((h, i) => (
+                    <div key={i} className="flex justify-between border-b border-[#A51C30]/15 pb-1.5 last:border-none">
+                      <span className="text-[#ABA29B] font-medium">{h.days}</span>
+                      <span className="text-[#FFFFFF] font-semibold">{h.hours}</span>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="flex justify-between border-b border-[#A51C30]/15 pb-1.5">
+                      <span className="text-[#ABA29B] font-medium">Lunch Service</span>
+                      <span className="text-[#FFFFFF] font-semibold">12:00 PM – 2:30 PM</span>
+                    </div>
+                    <div className="flex justify-between pb-1">
+                      <span className="text-[#ABA29B] font-medium">Dinner Service</span>
+                      <span className="text-[#FFFFFF] font-semibold">5:30 PM – 11:00 PM</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

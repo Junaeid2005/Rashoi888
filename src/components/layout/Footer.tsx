@@ -166,6 +166,19 @@ export const Footer: React.FC<FooterProps> = ({ info, onNavigate, onOpenBooking 
                   {info.email}
                 </a>
               </div>
+
+              <div className="pt-2 text-xs text-[#E2DDD7] border-t border-[#A51C30]/20 space-y-1">
+                <p className="text-[10px] uppercase font-bold tracking-wider text-[#E23D5B]">Opening Hours</p>
+                <p className="text-[#FFFFFF] font-semibold text-xs">Open 7 Days a Week</p>
+                <div className="text-[11px] text-[#ABA29B] flex justify-between">
+                  <span>Lunch:</span>
+                  <span className="text-[#E2DDD7]">12:00 PM – 2:30 PM</span>
+                </div>
+                <div className="text-[11px] text-[#ABA29B] flex justify-between">
+                  <span>Dinner:</span>
+                  <span className="text-[#E2DDD7]">5:30 PM – 11:00 PM</span>
+                </div>
+              </div>
             </div>
           </div>
 

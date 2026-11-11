@@ -223,9 +223,8 @@ export const INITIAL_RESTAURANT_INFO: RestaurantInfo = {
   email: 'info@rashoirestaurant.co.uk',
   googleMapsUrl: 'https://share.google/m1l4gEswAPjn9ckfn',
   openingHours: [
-    { days: 'Monday – Thursday', hours: '5:30 PM – 10:30 PM' },
-    { days: 'Friday – Saturday', hours: '5:00 PM – 11:00 PM' },
-    { days: 'Sunday', hours: '12:00 PM – 10:00 PM (Sunday Special All Day)' },
+    { days: 'Lunch (Open 7 Days a Week)', hours: '12:00 PM – 2:30 PM' },
+    { days: 'Dinner (Open 7 Days a Week)', hours: '5:30 PM – 11:00 PM' },
   ],
 };
 

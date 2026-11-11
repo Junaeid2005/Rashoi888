@@ -199,6 +199,9 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
           <p className="text-[#E2DDD7] text-sm sm:text-base font-normal">
             Join us for an unforgettable dining experience at Rashoi Restaurant in Windlesham, Surrey.
           </p>
+          <p className="text-xs text-[#E23D5B] mt-2 font-medium tracking-wide">
+            Open 7 Days a Week • Lunch: 12:00 PM – 2:30 PM • Dinner: 5:30 PM – 11:00 PM
+          </p>
         </div>
 
         {/* Card Form */}
@@ -362,7 +365,7 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
                 {/* Guests */}
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-[#FFFFFF] mb-2 font-medium">
-                    <Users className="w-3.5 h-3.5 inline mr-1 text-[#E23D5B]" /> Number of Guests *
+                    <Users className="w-3.5 h-3.5 inline mr-1 text-[#E23D5B]" /> Number of Guests * (1 to 30)
                   </label>
                   <select
                     value={guests}
@@ -370,7 +373,7 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
                     required
                     className="w-full px-4 py-3 rounded-xl bg-[#161013] border border-[#A51C30]/35 focus:border-[#E23D5B] text-[#FFFFFF] text-sm focus:outline-none transition-colors shadow-inner"
                   >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 20].map((num) => (
+                    {Array.from({ length: 30 }, (_, i) => i + 1).map((num) => (
                       <option key={num} value={num} className="bg-[#1F181C] text-[#FFFFFF]">
                         {num} {num === 1 ? 'Guest' : 'Guests'}
                       </option>

@@ -835,8 +835,15 @@ export async function getRestaurantSettings() {
       specialFeatureImageUrl: resolveAssetUrl(rawHome.specialFeatureImageUrl, '/images/rashoi_signature_dish_1794139812970.jpg'),
     };
 
+    const rawInfo = (infoSnap.exists() ? infoSnap.data() : INITIAL_RESTAURANT_INFO) as RestaurantInfo;
+    const isOldHours = !rawInfo.openingHours || rawInfo.openingHours.some(h => h.hours.includes('10:30') || h.hours.includes('10:00') || h.days.includes('Monday – Thursday'));
+    const info: RestaurantInfo = {
+      ...rawInfo,
+      openingHours: isOldHours ? INITIAL_RESTAURANT_INFO.openingHours : rawInfo.openingHours,
+    };
+
     return {
-      info: (infoSnap.exists() ? infoSnap.data() : INITIAL_RESTAURANT_INFO) as RestaurantInfo,
+      info,
       payment: (paySnap.exists() ? paySnap.data() : INITIAL_PAYMENT_SETTINGS) as PaymentSettings,
       homepage,
     };

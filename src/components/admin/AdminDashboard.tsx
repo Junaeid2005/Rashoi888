@@ -1888,6 +1888,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                 </div>
               </div>
 
+              {/* Opening Hours Schedule */}
+              <div className="pt-2 border-t border-[#262626] space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-1">
+                  <label className="block text-[#FFFFFF] font-bold uppercase tracking-wider text-xs">
+                    Opening Hours (Open 7 Days a Week)
+                  </label>
+                  <span className="text-[10px] text-[#A59E98]">
+                    Displayed on Homepage, Contact & Footer
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[#858078] uppercase mb-1">Lunch Service</label>
+                    <input
+                      type="text"
+                      value={restaurantInfo.openingHours?.[0]?.hours || '12:00 PM – 2:30 PM'}
+                      onChange={(e) => {
+                        const nextHours = [...(restaurantInfo.openingHours || [])];
+                        nextHours[0] = { days: 'Lunch (Open 7 Days a Week)', hours: e.target.value };
+                        setRestaurantInfo({ ...restaurantInfo, openingHours: nextHours });
+                      }}
+                      className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[#858078] uppercase mb-1">Dinner Service</label>
+                    <input
+                      type="text"
+                      value={restaurantInfo.openingHours?.[1]?.hours || '5:30 PM – 11:00 PM'}
+                      onChange={(e) => {
+                        const nextHours = [...(restaurantInfo.openingHours || [])];
+                        nextHours[1] = { days: 'Dinner (Open 7 Days a Week)', hours: e.target.value };
+                        setRestaurantInfo({ ...restaurantInfo, openingHours: nextHours });
+                      }}
+                      className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA]"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 className="px-6 py-2.5 bg-[#800020] hover:bg-[#9B1130] text-white shadow-md font-bold rounded uppercase tracking-wider"
