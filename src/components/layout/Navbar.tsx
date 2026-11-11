@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import {
@@ -33,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const mobileMenuPushedRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,6 +42,32 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Listen for phone back button while mobile menu drawer is open
+  useEffect(() => {
+    const handlePopState = () => {
+      if (mobileMenuOpen) {
+        mobileMenuPushedRef.current = false;
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [mobileMenuOpen]);
+
+  const openMobileMenu = () => {
+    setMobileMenuOpen(true);
+    mobileMenuPushedRef.current = true;
+    window.history.pushState({ overlay: 'mobileMenu', view: currentView }, '', window.location.hash);
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    if (mobileMenuPushedRef.current && window.history.state?.overlay === 'mobileMenu') {
+      mobileMenuPushedRef.current = false;
+      window.history.back();
+    }
+  };
 
   const navLinks = [
     { id: 'home', label: 'Home' },
@@ -52,8 +79,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   const handleNavClick = (viewId: string) => {
+    if (mobileMenuOpen) {
+      closeMobileMenu();
+    }
     setCurrentView(viewId);
-    setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -240,7 +269,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Mobile Hamburger Toggle */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => (mobileMenuOpen ? closeMobileMenu() : openMobileMenu())}
               aria-label="Toggle navigation"
               className="lg:hidden p-2 text-[#FFFFFF] hover:text-[#A51C30]"
             >
@@ -265,7 +294,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 </div>
                 <button
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   className="p-1 text-[#858078] hover:text-[#FFFFFF]"
                 >
                   <X className="w-6 h-6" />

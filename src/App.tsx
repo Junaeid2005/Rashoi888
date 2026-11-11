@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
@@ -74,18 +74,78 @@ function MainApp() {
   const [userModalTab, setUserModalTab] = useState<'reservations' | 'orders'>('orders');
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
+  // History & Exit Protection
+  const lastExitPressRef = useRef<number>(0);
+  const [showExitToast, setShowExitToast] = useState(false);
+  const exitToastTimerRef = useRef<any>(null);
+  const cartOpenedByHistoryRef = useRef(false);
+  const [adminInitialTab, setAdminInitialTab] = useState<string | undefined>(undefined);
+
+  const { isCartOpen, setIsCartOpen } = useCart();
+
   // URL query handling for Stripe returns
   const [paymentNotice, setPaymentNotice] = useState<{ type: 'cancelled' | 'success'; message: string } | null>(null);
+
+  // Unified in-app view navigation with full browser history support
+  const navigateToView = (view: string, options?: { replace?: boolean; adminTab?: string }) => {
+    // If already on the view and tab, just scroll top
+    if (view === currentView && (!options?.adminTab || options.adminTab === adminInitialTab)) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const targetHash = view === 'admin'
+      ? (options?.adminTab ? `#admin-${options.adminTab}` : '#admin')
+      : (view === 'home' ? '#home' : `#${view}`);
+
+    if (options?.replace) {
+      window.history.replaceState({ view, adminTab: options?.adminTab }, '', targetHash);
+    } else {
+      window.history.pushState({ view, adminTab: options?.adminTab }, '', targetHash);
+    }
+
+    if (view === 'admin' && options?.adminTab) {
+      setAdminInitialTab(options.adminTab);
+    }
+    setCurrentView(view);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     // Check initial path or hash
     const path = window.location.pathname;
     const search = window.location.search;
     const params = new URLSearchParams(search);
+    const hash = window.location.hash;
 
-    if (path.includes('/admin') || window.location.hash === '#admin') {
-      setCurrentView('admin');
+    let initialV = 'home';
+    let initialAdminSub: string | undefined = undefined;
+
+    if (path.includes('/admin') || hash.startsWith('#admin')) {
+      initialV = 'admin';
+      if (hash.startsWith('#admin-')) {
+        initialAdminSub = hash.replace('#admin-', '');
+      }
+    } else if (hash) {
+      const cleanHash = hash.replace('#', '');
+      const validViews = ['home', 'about', 'menu', 'gallery', 'reviews', 'contact'];
+      if (validViews.includes(cleanHash)) {
+        initialV = cleanHash;
+      }
     }
+
+    setCurrentView(initialV);
+    if (initialAdminSub) {
+      setAdminInitialTab(initialAdminSub);
+    }
+
+    // Anchor history base so back button never falls off into void
+    const initialTargetHash = initialV === 'admin'
+      ? (initialAdminSub ? `#admin-${initialAdminSub}` : '#admin')
+      : (initialV === 'home' ? '#home' : `#${initialV}`);
+
+    window.history.replaceState({ view: initialV, adminTab: initialAdminSub, isBase: true }, '', initialTargetHash);
+    window.history.pushState({ view: initialV, adminTab: initialAdminSub, isAppActive: true }, '', initialTargetHash);
 
     if (params.get('payment') === 'cancelled') {
       setPaymentNotice({
@@ -130,51 +190,126 @@ function MainApp() {
     init();
   }, []);
 
+  // Monitor Cart Drawer opening to create history snapshot for phone back button
+  useEffect(() => {
+    if (isCartOpen) {
+      if (!cartOpenedByHistoryRef.current) {
+        window.history.pushState({ overlay: 'cart', view: currentView }, '', window.location.hash);
+      }
+      cartOpenedByHistoryRef.current = false;
+    }
+  }, [isCartOpen, currentView]);
+
+  // Comprehensive popstate (Phone / Browser Back Button) handler
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // 1. If Cart Drawer is open, back button cleanly closes it without changing page
+      if (isCartOpen) {
+        cartOpenedByHistoryRef.current = true;
+        setIsCartOpen(false);
+        return;
+      }
+
+      // 2. If User Modal is open, back button cleanly closes it
+      if (userModalOpen) {
+        setUserModalOpen(false);
+        return;
+      }
+
+      // 3. If Order Success Modal is open, back button closes it
+      if (completedOrder) {
+        setCompletedOrder(null);
+        return;
+      }
+
+      const state = event.state;
+      const hash = window.location.hash;
+
+      // Check if navigation goes to or within admin
+      if (state?.view === 'admin' || hash.startsWith('#admin')) {
+        const sub = state?.adminTab || (hash.startsWith('#admin-') ? hash.replace('#admin-', '') : undefined);
+        if (sub) {
+          setAdminInitialTab(sub);
+        }
+        setCurrentView('admin');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // Normal website views
+      const targetView = state?.view || (hash ? hash.replace('#', '') : 'home');
+      const validViews = ['home', 'about', 'menu', 'gallery', 'reviews', 'contact'];
+      const nextView = validViews.includes(targetView) ? targetView : 'home';
+
+      // Accidental exit protection on root Home page:
+      if (currentView === 'home' && nextView === 'home') {
+        const now = Date.now();
+        if (now - lastExitPressRef.current < 2500) {
+          // Double press back within 2.5s -> allow user to exit website
+          window.history.back();
+          return;
+        } else {
+          // First press -> show cushion toast and keep user inside site
+          lastExitPressRef.current = now;
+          window.history.pushState({ view: 'home', isAppActive: true }, '', '#home');
+          setShowExitToast(true);
+          if (exitToastTimerRef.current) clearTimeout(exitToastTimerRef.current);
+          exitToastTimerRef.current = setTimeout(() => setShowExitToast(false), 2500);
+          return;
+        }
+      }
+
+      setCurrentView(nextView);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isCartOpen, userModalOpen, completedOrder, currentView, setIsCartOpen]);
+
   const handleOpenBooking = () => {
     if (currentView !== 'home') {
-      setCurrentView('home');
+      navigateToView('home');
       setTimeout(() => {
         document.getElementById('reservations')?.scrollIntoView({ behavior: 'smooth' });
-      }, 150);
+      }, 200);
     } else {
       document.getElementById('reservations')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  useEffect(() => {
-    const handlePopState = () => {
-      const hash = window.location.hash;
-      const path = window.location.pathname;
-      if (path.includes('/admin') || hash === '#admin') {
-        setCurrentView('admin');
-      } else {
-        setCurrentView('home');
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  const handleOpenUserModal = (tab: 'reservations' | 'orders' = 'reservations') => {
+    setUserModalTab(tab);
+    setUserModalOpen(true);
+    window.history.pushState({ overlay: 'userModal', view: currentView }, '', window.location.hash);
+  };
 
-  const [adminInitialTab, setAdminInitialTab] = useState<string | undefined>(undefined);
+  const handleCloseUserModal = () => {
+    setUserModalOpen(false);
+    if (window.history.state?.overlay === 'userModal') {
+      window.history.back();
+    }
+  };
+
+  const handleOrderSuccess = (order: Order) => {
+    setCompletedOrder(order);
+    window.history.pushState({ overlay: 'orderSuccess', view: currentView }, '', window.location.hash);
+  };
+
+  const handleCloseCompletedOrder = () => {
+    setCompletedOrder(null);
+    if (window.history.state?.overlay === 'orderSuccess') {
+      window.history.back();
+    }
+  };
 
   const handleNavigateToAdmin = (targetTab?: string) => {
-    if (targetTab) {
-      setAdminInitialTab(targetTab);
-    }
-    if (window.location.hash !== '#admin') {
-      window.history.pushState({ view: 'admin' }, '', '#admin');
-    }
-    setCurrentView('admin');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToView('admin', { adminTab: targetTab });
   };
 
   const handleReturnToSite = () => {
     setAdminInitialTab(undefined);
-    if (window.location.hash === '#admin') {
-      window.history.pushState({ view: 'home' }, '', window.location.pathname);
-    }
-    setCurrentView('home');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToView('home');
   };
 
   return (
@@ -198,16 +333,10 @@ function MainApp() {
       {/* Navbar */}
       <Navbar
         currentView={currentView}
-        setCurrentView={setCurrentView}
+        setCurrentView={navigateToView}
         onOpenBooking={handleOpenBooking}
-        onOpenUserModal={() => {
-          setUserModalTab('reservations');
-          setUserModalOpen(true);
-        }}
-        onOpenOrders={() => {
-          setUserModalTab('orders');
-          setUserModalOpen(true);
-        }}
+        onOpenUserModal={() => handleOpenUserModal('reservations')}
+        onOpenOrders={() => handleOpenUserModal('orders')}
       />
 
       {/* Stripe Payment Notification Banner if returning from Stripe */}
@@ -245,36 +374,21 @@ function MainApp() {
             <Hero
               settings={homepageSettings}
               onBookTable={handleOpenBooking}
-              onExploreMenu={() => {
-                setCurrentView('menu');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              onGoToAdmin={() => {
-                setCurrentView('admin');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onExploreMenu={() => navigateToView('menu')}
+              onGoToAdmin={() => navigateToView('admin')}
             />
             <SignatureDishes
               dishes={menuItems}
-              onViewMenu={() => {
-                setCurrentView('menu');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onViewMenu={() => navigateToView('menu')}
             />
             <ReservationSection
-              onGoToAdmin={() => {
-                setCurrentView('admin');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onGoToAdmin={() => navigateToView('admin')}
             />
             <ExperienceSection />
             <SpecialMenuFeature
               settings={homepageSettings}
               onBookTable={handleOpenBooking}
-              onViewMenu={() => {
-                setCurrentView('menu');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onViewMenu={() => navigateToView('menu')}
             />
             <CustomerReviews reviews={reviews} />
             <LocationSection info={restaurantInfo} />
@@ -286,10 +400,7 @@ function MainApp() {
             settings={homepageSettings}
             info={restaurantInfo}
             onBookTable={handleOpenBooking}
-            onViewMenu={() => {
-              setCurrentView('menu');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onViewMenu={() => navigateToView('menu')}
           />
         )}
 
@@ -314,15 +425,12 @@ function MainApp() {
       {/* Footer */}
       <Footer
         info={restaurantInfo}
-        onNavigate={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onNavigate={(view) => navigateToView(view)}
         onOpenBooking={handleOpenBooking}
       />
 
       {/* Cart Drawer */}
-      <CartDrawer onOrderSuccess={(ord) => setCompletedOrder(ord)} />
+      <CartDrawer onOrderSuccess={handleOrderSuccess} />
 
       {/* Floating Cart & Quick Checkout Bar */}
       <FloatingCartBar />
@@ -330,15 +438,25 @@ function MainApp() {
       {/* Order Success Receipt Modal */}
       <OrderSuccessModal
         order={completedOrder}
-        onClose={() => setCompletedOrder(null)}
+        onClose={handleCloseCompletedOrder}
       />
 
       {/* User Account / History Modal */}
       <UserModal
         isOpen={userModalOpen}
-        onClose={() => setUserModalOpen(false)}
+        onClose={handleCloseUserModal}
         initialTab={userModalTab}
       />
+
+      {/* Accidental Exit Cushion Toast on Home Screen */}
+      {showExitToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="px-5 py-3 rounded-full bg-[#181114]/95 border border-[#800020] text-white text-xs font-medium shadow-2xl flex items-center space-x-2.5 backdrop-blur-md">
+            <span className="w-2 h-2 rounded-full bg-[#E23D5B] animate-pulse"></span>
+            <span>Press back again to exit website</span>
+          </div>
+        </div>
+      )}
 
       {/* Auth Error Notification Modal */}
       {authError && (

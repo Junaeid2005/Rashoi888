@@ -78,6 +78,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
 
   const stripeActive = isStripeOnlinePaymentActive();
 
+  const handleCloseCart = () => {
+    setIsCartOpen(false);
+    setIsCheckingOut(false);
+    if (window.history.state?.overlay === 'cart') {
+      window.history.back();
+    }
+  };
+
   if (!isCartOpen) return null;
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -178,8 +186,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-sm flex justify-end">
-      <div className="relative w-full max-w-md bg-[#161114] border-l border-[#A51C30]/35 shadow-2xl flex flex-col h-full text-[#FFFFFF]">
+    <div
+      className="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-sm flex justify-end"
+      onClick={handleCloseCart}
+    >
+      <div
+        className="relative w-full max-w-md bg-[#161114] border-l border-[#A51C30]/35 shadow-2xl flex flex-col h-full text-[#FFFFFF]"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="p-6 border-b border-[#A51C30]/25 flex items-center justify-between bg-[#1A1418]">
@@ -190,10 +204,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
             </h2>
           </div>
           <button
-            onClick={() => {
-              setIsCartOpen(false);
-              setIsCheckingOut(false);
-            }}
+            onClick={handleCloseCart}
             className="p-1.5 text-[#ABA29B] hover:text-[#FFFFFF] rounded-full hover:bg-[#291F24] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -217,7 +228,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                 You are currently signed in with an administrator account (<span className="text-white font-medium">{user?.email}</span>). Takeaway food ordering and checkout are disabled for admin accounts.
               </p>
               <button
-                onClick={() => setIsCartOpen(false)}
+                onClick={handleCloseCart}
                 className="px-6 py-2.5 nav-burgundy-btn text-white font-semibold text-xs uppercase tracking-wider rounded-xl cursor-pointer"
               >
                 Close Basket
@@ -228,7 +239,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
               <ShoppingBag className="w-12 h-12 text-[#3A2A30] mx-auto" />
               <p className="text-[#ABA29B] text-sm">Your order basket is currently empty.</p>
               <button
-                onClick={() => setIsCartOpen(false)}
+                onClick={handleCloseCart}
                 className="px-6 py-3 nav-burgundy-btn text-white font-semibold text-xs tracking-wider uppercase rounded-xl cursor-pointer"
               >
                 Browse Menu

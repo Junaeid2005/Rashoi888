@@ -49,6 +49,45 @@ export const MenuPage: React.FC<MenuPageProps> = ({
   // Success Toast
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
 
+  // Dismiss open modals when phone back button is pressed
+  React.useEffect(() => {
+    const handlePop = () => {
+      if (papadamModalDish) {
+        setPapadamModalDish(null);
+      }
+      if (selectedDish) {
+        setSelectedDish(null);
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [papadamModalDish, selectedDish]);
+
+  const openDishModal = (dish: { item: MenuItem; meta: DishVisualMeta }) => {
+    setSelectedDish(dish);
+    setModalQuantity(1);
+    window.history.pushState({ modal: 'dishModal', view: 'menu' }, '', window.location.hash);
+  };
+
+  const closeDishModal = () => {
+    setSelectedDish(null);
+    if (window.history.state?.modal === 'dishModal') {
+      window.history.back();
+    }
+  };
+
+  const openPapadamModal = (dish: PapadamDishInfo) => {
+    setPapadamModalDish(dish);
+    window.history.pushState({ modal: 'papadamModal', view: 'menu' }, '', window.location.hash);
+  };
+
+  const closePapadamModal = () => {
+    setPapadamModalDish(null);
+    if (window.history.state?.modal === 'papadamModal') {
+      window.history.back();
+    }
+  };
+
   // Visible Categories
   const visibleCategories = useMemo(() => {
     return categories.filter((c) => c.isVisible);
@@ -133,7 +172,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
 
   const handleInitiateAddDish = (dish: MenuItem, qty: number = 1) => {
     if (isPapadamDish(dish.name)) {
-      setPapadamModalDish({
+      openPapadamModal({
         name: dish.name,
         price: dish.price,
         categoryName: dish.categoryName,
@@ -394,7 +433,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                     <div className="p-5 flex-1 flex flex-col justify-between">
                       <div>
                         <h4
-                          onClick={() => setSelectedDish({ item, meta: item.visualMeta })}
+                          onClick={() => openDishModal({ item, meta: item.visualMeta })}
                           className="font-serif text-lg font-bold text-[#FFFFFF] group-hover:text-[#F5B8C3] transition-colors cursor-pointer text-left"
                         >
                           {item.name}
@@ -409,7 +448,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                       <div className="mt-5 pt-3.5 border-t border-[#222222] flex items-center justify-between gap-3">
                         {isAdmin ? (
                           <button
-                            onClick={() => setSelectedDish({ item, meta: item.visualMeta })}
+                            onClick={() => openDishModal({ item, meta: item.visualMeta })}
                             className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer bg-[#1A1A1A] hover:bg-[#252525] text-[#D4CDC5] hover:text-white border border-[#333333]"
                           >
                             <Eye className="w-3.5 h-3.5 text-[#E23D5B]" />
@@ -470,10 +509,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
           <div className="relative max-w-lg w-full rounded-2xl overflow-hidden border border-[#800020]/40 bg-[#121212] text-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button
-              onClick={() => {
-                setSelectedDish(null);
-                setModalQuantity(1);
-              }}
+              onClick={closeDishModal}
               className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/60 text-white hover:bg-[#800020] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -554,9 +590,8 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                         if (isPapadamDish(selectedDish.item.name)) {
                           const item = selectedDish.item;
                           const qty = modalQuantity;
-                          setSelectedDish(null);
-                          setModalQuantity(1);
-                          setPapadamModalDish({
+                          closeDishModal();
+                          openPapadamModal({
                             name: item.name,
                             price: item.price,
                             categoryName: item.categoryName,
@@ -570,8 +605,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                           selectedDish.item.categoryName,
                           modalQuantity
                         );
-                        setSelectedDish(null);
-                        setModalQuantity(1);
+                        closeDishModal();
                       }}
                       className="flex-1 py-3 px-6 rounded-xl font-semibold text-xs tracking-widest uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-lg bg-[#800020] hover:bg-[#9B1130] text-white"
                     >
@@ -603,7 +637,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
       <PapadamChutneyModal
         isOpen={!!papadamModalDish}
         dish={papadamModalDish}
-        onClose={() => setPapadamModalDish(null)}
+        onClose={closePapadamModal}
         onConfirm={(qty, selectedCondiments) => {
           if (papadamModalDish) {
             handleAddDish(
@@ -614,7 +648,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
               selectedCondiments
             );
           }
-          setPapadamModalDish(null);
+          closePapadamModal();
         }}
       />
 

@@ -166,8 +166,14 @@ export const UserModal: React.FC<UserModalProps> = ({
   if (!isOpen || !user) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl rounded-3xl bg-[#191316] border border-[#800020]/45 shadow-2xl p-5 sm:p-8 text-[#FFFFFF] max-h-[92vh] flex flex-col text-left">
+    <div
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-3xl rounded-3xl bg-[#191316] border border-[#800020]/45 shadow-2xl p-5 sm:p-8 text-[#FFFFFF] max-h-[92vh] flex flex-col text-left"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Toast Alert */}
         {toastMessage && (

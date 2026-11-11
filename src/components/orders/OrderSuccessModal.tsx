@@ -18,8 +18,14 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, onC
   if (!order) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="relative w-full max-w-lg rounded-2xl bg-[#1F181C] border border-[#800020]/45 shadow-2xl p-6 sm:p-8 text-[#FFFFFF] text-left max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-lg rounded-2xl bg-[#1F181C] border border-[#800020]/45 shadow-2xl p-6 sm:p-8 text-[#FFFFFF] text-left max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         <button
           onClick={onClose}

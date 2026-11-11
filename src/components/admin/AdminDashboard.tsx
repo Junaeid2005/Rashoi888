@@ -139,11 +139,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
     | 'paymentSettings'
   >((initialTab as any) || 'overview');
 
+  const handleSelectTab = (tabId: typeof activeTab) => {
+    if (tabId === activeTab) return;
+    window.history.pushState({ view: 'admin', adminTab: tabId }, '', `#admin-${tabId}`);
+    setActiveTab(tabId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   useEffect(() => {
     if (initialTab) {
       setActiveTab(initialTab as any);
     }
   }, [initialTab]);
+
+  // Handle phone / browser back navigation within Admin sub-tabs & modals
+  useEffect(() => {
+    const handleAdminPop = (event: PopStateEvent) => {
+      const hash = window.location.hash;
+      const state = event.state;
+
+      if (state?.adminTab) {
+        setActiveTab(state.adminTab);
+      } else if (hash.startsWith('#admin-')) {
+        const sub = hash.replace('#admin-', '') as typeof activeTab;
+        setActiveTab(sub);
+      } else if (hash === '#admin') {
+        setActiveTab('overview');
+      }
+    };
+
+    window.addEventListener('popstate', handleAdminPop);
+    return () => window.removeEventListener('popstate', handleAdminPop);
+  }, []);
 
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -652,7 +679,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id as any)}
+                  onClick={() => handleSelectTab(item.id as any)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                     isActive
                       ? 'bg-[#800020] text-white font-semibold shadow-md'
@@ -825,7 +852,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab(liveAlert.type === 'order' ? 'orders' : 'reservations');
+                  handleSelectTab(liveAlert.type === 'order' ? 'orders' : 'reservations');
                   setLiveAlert(null);
                 }}
                 className="px-4 py-2 bg-[#800020] hover:bg-[#9B1130] text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
@@ -893,7 +920,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                 <div className="flex justify-between items-center">
                   <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">Recent Orders</h3>
                   <button
-                    onClick={() => setActiveTab('orders')}
+                    onClick={() => handleSelectTab('orders')}
                     className="text-xs text-[#F5B8C3] hover:underline"
                   >
                     View All
@@ -926,7 +953,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                 <div className="flex justify-between items-center">
                   <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">Pending Bookings</h3>
                   <button
-                    onClick={() => setActiveTab('reservations')}
+                    onClick={() => handleSelectTab('reservations')}
                     className="text-xs text-[#F5B8C3] hover:underline"
                   >
                     View All
