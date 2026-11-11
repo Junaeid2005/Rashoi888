@@ -24,13 +24,22 @@ export const Footer: React.FC<FooterProps> = ({ info, onNavigate, onOpenBooking 
           
           {/* Column 1: Brand & Intro */}
           <div className="space-y-4">
-            <div className="flex flex-col">
-              <span className="font-serif text-2xl font-bold tracking-widest text-[#FFFFFF]">
-                RASHOI
-              </span>
-              <span className="text-[10px] tracking-[0.28em] text-[#E23D5B] uppercase font-sans font-semibold -mt-1">
-                THE INDIAN KITCHEN
-              </span>
+            <div className="flex items-center space-x-3.5">
+              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full p-[2px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shrink-0 shadow-lg shadow-[#800020]/25">
+                <img
+                  src="/images/rashoi_official_logo.jpeg"
+                  alt="Rashoi Official Logo"
+                  className="w-full h-full object-cover rounded-full"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-serif text-2xl font-bold tracking-widest text-[#FFFFFF]">
+                  RASHOI
+                </span>
+                <span className="text-[10px] tracking-[0.28em] text-[#E23D5B] uppercase font-sans font-semibold -mt-1">
+                  THE INDIAN KITCHEN
+                </span>
+              </div>
             </div>
             <p className="text-xs sm:text-sm text-[#ABA29B] leading-relaxed font-normal">
               Centuries of authentic Indian culinary heritage, charcoal-grilled tandoori delicacies, and refined British dining in the heart of Windlesham, Surrey.

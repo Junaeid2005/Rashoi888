@@ -211,6 +211,17 @@ export const UserModal: React.FC<UserModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
+            <div className="hidden sm:flex items-center space-x-2 mr-2 pr-3 border-r border-[#2D2228]">
+              <div className="w-7 h-7 rounded-full p-[1px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shrink-0">
+                <img
+                  src="/images/rashoi_official_logo.jpeg"
+                  alt="Rashoi Logo"
+                  className="w-full h-full object-cover rounded-full"
+                />
+              </div>
+              <span className="font-serif text-[11px] font-bold text-white tracking-widest">RASHOI</span>
+            </div>
+
             <button
               onClick={() => {
                 signOut();

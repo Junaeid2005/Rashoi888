@@ -100,14 +100,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Brand Logo */}
           <button
             onClick={() => handleNavClick('home')}
-            className="flex flex-col items-start text-left group transition-transform duration-200 cursor-pointer"
+            className="flex items-center space-x-3 text-left group transition-transform duration-200 cursor-pointer"
           >
-            <span className="font-serif text-2xl sm:text-3xl font-bold tracking-widest text-[#FFFFFF] group-hover:text-[#F5C6D0] transition-colors">
-              RASHOI
-            </span>
-            <span className="text-[9px] tracking-[0.28em] text-[#A51C30] uppercase font-sans font-semibold -mt-1">
-              THE INDIAN KITCHEN
-            </span>
+            <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0">
+              <img
+                src="/images/rashoi_official_logo.jpeg"
+                alt="Rashoi Official Logo"
+                className="w-full h-full object-cover rounded-full"
+              />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="font-serif text-xl sm:text-2xl font-bold tracking-widest text-[#FFFFFF] group-hover:text-[#F5C6D0] transition-colors leading-tight">
+                RASHOI
+              </span>
+              <span className="text-[8px] sm:text-[9px] tracking-[0.28em] text-[#A51C30] uppercase font-sans font-semibold">
+                THE INDIAN KITCHEN
+              </span>
+            </div>
           </button>
 
           {/* Desktop Navigation */}
@@ -285,13 +294,22 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="fixed inset-y-0 right-0 max-w-xs w-full bg-[#161114] border-l border-[#800020]/30 p-6 shadow-2xl flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-6 border-b border-[#292025]">
-                <div className="flex flex-col">
-                  <span className="font-serif text-xl font-bold tracking-widest text-[#FFFFFF]">
-                    RASHOI
-                  </span>
-                  <span className="text-[9px] tracking-widest text-[#C22D47] uppercase font-medium">
-                    THE INDIAN KITCHEN
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shrink-0 shadow-md">
+                    <img
+                      src="/images/rashoi_official_logo.jpeg"
+                      alt="Rashoi Official Logo"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-serif text-lg font-bold tracking-widest text-[#FFFFFF]">
+                      RASHOI
+                    </span>
+                    <span className="text-[9px] tracking-widest text-[#C22D47] uppercase font-medium">
+                      THE INDIAN KITCHEN
+                    </span>
+                  </div>
                 </div>
                 <button
                   onClick={closeMobileMenu}

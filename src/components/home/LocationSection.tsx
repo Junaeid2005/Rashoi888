@@ -13,6 +13,13 @@ export const LocationSection: React.FC<LocationSectionProps> = ({ info }) => {
         
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shadow-xl shadow-[#800020]/30">
+            <img
+              src="/images/rashoi_official_logo.jpeg"
+              alt="Rashoi Restaurant Emblem"
+              className="w-full h-full object-cover rounded-full shadow-inner"
+            />
+          </div>
           <span className="text-xs uppercase tracking-[0.28em] text-[#E23D5B] font-semibold font-sans">
             FIND US IN WINDLESHAM
           </span>

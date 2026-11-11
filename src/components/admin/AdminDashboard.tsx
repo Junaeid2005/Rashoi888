@@ -640,13 +640,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
           {/* Header */}
           <div className="p-5 border-b border-[#262626]">
             <div className="flex items-center justify-between">
-              <div>
-                <span className="font-serif text-lg font-bold tracking-widest text-[#F5F1EA]">
-                  RASHOI
-                </span>
-                <p className="text-[9px] uppercase tracking-widest text-[#F5B8C3]">
-                  ADMIN CONTROL SUITE
-                </p>
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shrink-0 shadow-md">
+                  <img
+                    src="/images/rashoi_official_logo.jpeg"
+                    alt="Rashoi Logo"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                </div>
+                <div>
+                  <span className="font-serif text-base font-bold tracking-widest text-[#F5F1EA]">
+                    RASHOI
+                  </span>
+                  <p className="text-[8px] uppercase tracking-widest text-[#F5B8C3] font-sans">
+                    ADMIN CONTROL SUITE
+                  </p>
+                </div>
               </div>
               <div className="flex items-center space-x-1">
                 <button

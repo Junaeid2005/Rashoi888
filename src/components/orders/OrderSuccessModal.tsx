@@ -34,10 +34,19 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, onC
           <X className="w-5 h-5" />
         </button>
 
-        {/* Success Icon */}
-        <div className="text-center space-y-2 mb-6">
-          <div className="w-14 h-14 rounded-full bg-[#2A1E24] border border-[#A51C30] flex items-center justify-center mx-auto text-[#E23D5B] shadow-lg shadow-[#800020]/20">
-            <CheckCircle2 className="w-8 h-8" />
+        {/* Success Icon & Brand Emblem */}
+        <div className="text-center space-y-3 mb-6">
+          <div className="relative w-16 h-16 mx-auto">
+            <div className="w-16 h-16 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shadow-xl shadow-[#800020]/30">
+              <img
+                src="/images/rashoi_official_logo.jpeg"
+                alt="Rashoi Official Emblem"
+                className="w-full h-full object-cover rounded-full shadow-inner"
+              />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center border-2 border-[#1F181C] shadow">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
           </div>
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#FFFFFF]">
             Thank you for your order!

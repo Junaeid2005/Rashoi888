@@ -214,6 +214,7 @@ export const INITIAL_CLASSIC_DISHES: ClassicDishPricing[] = [
 export const INITIAL_RESTAURANT_INFO: RestaurantInfo = {
   name: 'Rashoi Restaurant',
   tagline: 'The Indian Kitchen',
+  logoUrl: '/images/rashoi_official_logo.jpeg',
   address: '58 Updown Hill',
   postcode: 'GU20 6DX',
   city: 'Windlesham',

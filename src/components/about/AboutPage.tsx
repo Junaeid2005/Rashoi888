@@ -22,6 +22,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 rounded-full p-[2.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shadow-2xl shadow-[#800020]/40">
+            <img
+              src="/images/rashoi_official_logo.jpeg"
+              alt="Rashoi Authentic Restaurant Emblem"
+              className="w-full h-full object-cover rounded-full shadow-inner"
+            />
+          </div>
           <span className="text-xs uppercase tracking-[0.28em] text-[#E23D5B] font-semibold font-sans">
             OUR STORY & TRADITION
           </span>

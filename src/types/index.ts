@@ -136,6 +136,7 @@ export interface Order {
 export interface RestaurantInfo {
   name: string;
   tagline: string;
+  logoUrl?: string;
   address: string;
   postcode: string;
   city: string;

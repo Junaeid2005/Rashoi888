@@ -36,6 +36,18 @@ export const Hero: React.FC<HeroProps> = ({
       {/* Main Content - Centered */}
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center flex flex-col items-center justify-center space-y-6">
         
+        {/* Signature Circular Emblem with Backlight Glow matching the plaque */}
+        <div className="relative group mb-1">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[2.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shadow-2xl shadow-[#800020]/50 transition-all duration-300 group-hover:scale-105">
+            <img
+              src="/images/rashoi_official_logo.jpeg"
+              alt="Rashoi Official Logo Emblem"
+              className="w-full h-full object-cover rounded-full shadow-inner"
+            />
+          </div>
+          <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-blue-500/30 via-amber-400/25 to-[#800020]/40 blur-md -z-10 pointer-events-none" />
+        </div>
+
         {/* Eyebrow Badge in Burgundy */}
         <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full border border-[#A51C30]/50 bg-[#1F1418]/90 backdrop-blur-md shadow-lg shadow-[#800020]/20">
           <Sparkles className="w-3.5 h-3.5 text-[#E23D5B]" />
