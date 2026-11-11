@@ -9,7 +9,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { Navbar } from './components/layout/Navbar';
 import { Hero } from './components/home/Hero';
-import { Introduction } from './components/home/Introduction';
 import { SignatureDishes } from './components/home/SignatureDishes';
 import { ExperienceSection } from './components/home/ExperienceSection';
 import { SpecialMenuFeature } from './components/home/SpecialMenuFeature';
@@ -255,11 +254,16 @@ function MainApp() {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             />
-            <Introduction settings={homepageSettings} />
             <SignatureDishes
               dishes={menuItems}
               onViewMenu={() => {
                 setCurrentView('menu');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+            <ReservationSection
+              onGoToAdmin={() => {
+                setCurrentView('admin');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             />
@@ -273,12 +277,6 @@ function MainApp() {
               }}
             />
             <CustomerReviews reviews={reviews} />
-            <ReservationSection
-              onGoToAdmin={() => {
-                setCurrentView('admin');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            />
             <LocationSection info={restaurantInfo} />
           </>
         )}
