@@ -36,16 +36,16 @@ export const Hero: React.FC<HeroProps> = ({
       {/* Main Content - Centered */}
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center flex flex-col items-center justify-center space-y-6">
         
-        {/* Signature Circular Emblem with Backlight Glow matching the plaque */}
+        {/* Signature Circular Emblem with Backlight Glow */}
         <div className="relative group mb-1">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[2.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shadow-2xl shadow-[#800020]/50 transition-all duration-300 group-hover:scale-105">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 transition-all duration-300 group-hover:scale-105 flex items-center justify-center">
             <img
-              src="/images/rashoi_official_logo.jpeg"
+              src="/images/rashoi_official_logo.png"
               alt="Rashoi Official Logo Emblem"
-              className="w-full h-full object-cover rounded-full shadow-inner"
+              className="w-full h-full object-contain filter drop-shadow-[0_8px_25px_rgba(165,28,48,0.6)]"
             />
           </div>
-          <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-blue-500/30 via-amber-400/25 to-[#800020]/40 blur-md -z-10 pointer-events-none" />
+          <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-[#A51C30]/20 via-amber-400/20 to-[#800020]/30 blur-md -z-10 pointer-events-none" />
         </div>
 
         {/* Eyebrow Badge in Burgundy */}

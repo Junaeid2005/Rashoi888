@@ -641,11 +641,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
           <div className="p-5 border-b border-[#262626]">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shrink-0 shadow-md">
+                <div className="w-9 h-9 shrink-0 flex items-center justify-center">
                   <img
-                    src="/images/rashoi_official_logo.jpeg"
+                    src="/images/rashoi_official_logo.png"
                     alt="Rashoi Logo"
-                    className="w-full h-full object-cover rounded-full"
+                    className="w-full h-full object-contain filter drop-shadow-sm"
                   />
                 </div>
                 <div>

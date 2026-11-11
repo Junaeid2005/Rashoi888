@@ -36,14 +36,12 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, onC
 
         {/* Success Icon & Brand Emblem */}
         <div className="text-center space-y-3 mb-6">
-          <div className="relative w-16 h-16 mx-auto">
-            <div className="w-16 h-16 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shadow-xl shadow-[#800020]/30">
-              <img
-                src="/images/rashoi_official_logo.jpeg"
-                alt="Rashoi Official Emblem"
-                className="w-full h-full object-cover rounded-full shadow-inner"
-              />
-            </div>
+          <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+            <img
+              src="/images/rashoi_official_logo.png"
+              alt="Rashoi Official Emblem"
+              className="w-full h-full object-contain filter drop-shadow-[0_4px_16px_rgba(165,28,48,0.4)]"
+            />
             <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center border-2 border-[#1F181C] shadow">
               <CheckCircle2 className="w-4 h-4" />
             </div>

@@ -212,11 +212,11 @@ export const UserModal: React.FC<UserModalProps> = ({
 
           <div className="flex items-center space-x-2">
             <div className="hidden sm:flex items-center space-x-2 mr-2 pr-3 border-r border-[#2D2228]">
-              <div className="w-7 h-7 rounded-full p-[1px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shrink-0">
+              <div className="w-7 h-7 shrink-0 flex items-center justify-center">
                 <img
-                  src="/images/rashoi_official_logo.jpeg"
+                  src="/images/rashoi_official_logo.png"
                   alt="Rashoi Logo"
-                  className="w-full h-full object-cover rounded-full"
+                  className="w-full h-full object-contain filter drop-shadow-sm"
                 />
               </div>
               <span className="font-serif text-[11px] font-bold text-white tracking-widest">RASHOI</span>

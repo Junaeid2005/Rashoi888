@@ -102,11 +102,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => handleNavClick('home')}
             className="flex items-center space-x-3 text-left group transition-transform duration-200 cursor-pointer"
           >
-            <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shadow-md group-hover:scale-105 transition-transform duration-200 shrink-0">
+            <div className="relative w-10 h-10 sm:w-11 sm:h-11 shrink-0 group-hover:scale-105 transition-transform duration-200 flex items-center justify-center">
               <img
-                src="/images/rashoi_official_logo.jpeg"
+                src="/images/rashoi_official_logo.png"
                 alt="Rashoi Official Logo"
-                className="w-full h-full object-cover rounded-full"
+                className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(165,28,48,0.35)]"
               />
             </div>
             <div className="flex flex-col items-start">
@@ -295,11 +295,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div>
               <div className="flex items-center justify-between pb-6 border-b border-[#292025]">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full p-[1.5px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shrink-0 shadow-md">
+                  <div className="w-10 h-10 shrink-0 flex items-center justify-center">
                     <img
-                      src="/images/rashoi_official_logo.jpeg"
+                      src="/images/rashoi_official_logo.png"
                       alt="Rashoi Official Logo"
-                      className="w-full h-full object-cover rounded-full"
+                      className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(165,28,48,0.35)]"
                     />
                   </div>
                   <div className="flex flex-col">

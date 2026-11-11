@@ -25,11 +25,11 @@ export const Footer: React.FC<FooterProps> = ({ info, onNavigate, onOpenBooking 
           {/* Column 1: Brand & Intro */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3.5">
-              <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full p-[2px] bg-gradient-to-tr from-[#800020] via-amber-400 to-[#A51C30] shrink-0 shadow-lg shadow-[#800020]/25">
+              <div className="w-13 h-13 sm:w-14 sm:h-14 shrink-0 flex items-center justify-center">
                 <img
-                  src="/images/rashoi_official_logo.jpeg"
+                  src="/images/rashoi_official_logo.png"
                   alt="Rashoi Official Logo"
-                  className="w-full h-full object-cover rounded-full"
+                  className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(165,28,48,0.4)]"
                 />
               </div>
               <div className="flex flex-col">
