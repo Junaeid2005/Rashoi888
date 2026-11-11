@@ -45,7 +45,7 @@ export const Hero: React.FC<HeroProps> = ({
         </div>
 
         {/* Main Headline */}
-        <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-[#FFFFFF] leading-[1.14] max-w-4xl">
+        <h1 className="font-serif text-3xl sm:text-5xl lg:text-[3.6rem] xl:text-6xl font-bold tracking-tight text-[#FFFFFF] leading-[1.18] max-w-3xl">
           Discover the Art of <br className="hidden sm:inline" />
           <span className="burgundy-gradient-text italic font-normal">
             Traditional Indian
