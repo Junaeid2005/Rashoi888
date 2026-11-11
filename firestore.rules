@@ -119,7 +119,7 @@ service cloud.firestore {
         request.resource.data.customerName is string && request.resource.data.customerName.size() > 0 &&
         request.resource.data.customerEmail is string && request.resource.data.customerEmail.size() > 0 &&
         request.resource.data.totalAmount is number && request.resource.data.totalAmount >= 0 &&
-        request.resource.data.orderStatus == 'new' &&
+        request.resource.data.orderStatus in ['new', 'accepted'] &&
         (request.resource.data.paymentStatus == 'unpaid' || request.resource.data.paymentStatus == 'pending');
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.get('customerId', '') == request.auth.uid ||

@@ -37,7 +37,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, onC
             Thank you for your order!
           </h2>
           <p className="text-xs text-[#D4CDC5]">
-            Your takeaway order has been recorded and transmitted to the kitchen.
+            Your takeaway order has been confirmed, accepted, and transmitted to the kitchen.
           </p>
         </div>
 
@@ -55,8 +55,8 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, onC
 
           <div className="flex justify-between text-xs">
             <span className="text-[#A59E98]">Order Status:</span>
-            <span className="text-xs px-2 py-0.5 rounded bg-blue-950 text-blue-200 font-medium capitalize border border-blue-800/40">
-              {order.orderStatus}
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#800020] text-white font-bold border border-[#E23D5B] shadow-sm uppercase tracking-wider">
+              Order Accepted
             </span>
           </div>
 

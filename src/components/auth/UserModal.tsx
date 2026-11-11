@@ -275,7 +275,7 @@ export const UserModal: React.FC<UserModalProps> = ({
               <div className="space-y-4">
                 {orders.map((ord) => {
                   const isExpanded = expandedOrderId === ord.orderId;
-                  const isAccepted = ord.orderStatus === 'accepted';
+                  const isAccepted = ord.orderStatus === 'accepted' || ord.orderStatus === 'new';
                   const isPreparing = ord.orderStatus === 'preparing';
                   const isReady = ord.orderStatus === 'ready_for_collection';
                   const isCompleted = ord.orderStatus === 'completed';
@@ -306,11 +306,6 @@ export const UserModal: React.FC<UserModalProps> = ({
                             </span>
                             
                             {/* Prominent Status Badge */}
-                            {ord.orderStatus === 'new' && (
-                              <span className="px-2.5 py-0.5 rounded-full bg-blue-950 text-blue-300 text-[11px] font-bold uppercase border border-blue-500/30">
-                                ⏳ Order Received (Pending Accept)
-                              </span>
-                            )}
                             {isAccepted && (
                               <span className="px-3 py-0.5 rounded-full bg-[#800020] text-white text-[11px] font-bold uppercase border border-[#E23D5B] shadow-sm animate-pulse">
                                 👨‍🍳 Order Accepted
@@ -370,7 +365,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                                 <div>
                                   <p className="font-bold text-sm">1. Order Accepted</p>
                                   <p className="text-[11px] text-[#A59E98]">
-                                    {isAccepted || isReady || isCompleted ? 'Confirmed by Kitchen' : 'Pending Kitchen Accept'}
+                                    Confirmed by Kitchen
                                   </p>
                                 </div>
                               </div>

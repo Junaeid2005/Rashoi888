@@ -146,7 +146,7 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
         snapshot.docs.forEach((docSnap) => {
           const ord = docSnap.data() as Order;
           if (!isInitialOrdersRef.current && !knownOrderIdsRef.current.has(ord.orderId)) {
-            if (ord.orderStatus === 'new') {
+            if (ord.orderStatus === 'accepted' || ord.orderStatus === 'new') {
               hasNew = true;
               latestOrder = ord;
             }

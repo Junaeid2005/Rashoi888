@@ -29,6 +29,7 @@ import {
   deleteGalleryItem,
   getOrders,
   updateOrderStatus,
+  deleteOrder,
   getRestaurantSettings,
   saveRestaurantInfo,
   savePaymentSettings,
@@ -292,7 +293,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
         updatedOrders.push(ord);
 
         if (!isInitialOrdersRef.current && !knownOrderIdsRef.current.has(ord.orderId)) {
-          if (ord.orderStatus === 'new') {
+          if (ord.orderStatus === 'accepted' || ord.orderStatus === 'new') {
             hasNewOrder = true;
             latestNewOrder = ord;
           }
@@ -459,7 +460,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
       );
 
       const statusLabels: Record<string, string> = {
-        new: 'Order Received',
         accepted: 'Order Accepted',
         ready_for_collection: 'Ready for Collection',
         completed: 'Completed',
@@ -467,6 +467,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
       triggerToast(`Order #${orderId} status: ${statusLabels[newStatus] || newStatus}`);
     } catch (err) {
       alert('Failed to update order status');
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete Takeaway Order #${orderId}?`)) return;
+    try {
+      await deleteOrder(orderId);
+      setOrders((prev) => prev.filter((o) => o.orderId !== orderId));
+      triggerToast(`Order #${orderId} deleted successfully`);
+    } catch (err) {
+      alert('Failed to delete order');
     }
   };
 
@@ -574,7 +585,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
   // Nav items list
   const sidebarNav = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'orders', label: 'Orders Management', icon: ShoppingBag, count: orders.filter(o => o.orderStatus === 'new').length },
+    { id: 'orders', label: 'Orders Management', icon: ShoppingBag, count: orders.filter(o => o.orderStatus === 'accepted' || o.orderStatus === 'ready_for_collection').length },
     { id: 'reservations', label: 'Table Reservations', icon: CalendarCheck, count: reservations.filter(r => r.status === 'pending').length },
     { id: 'menu', label: 'Menu Management', icon: UtensilsCrossed },
     { id: 'classicPricing', label: 'Classic Dishes Matrix', icon: Layers },
@@ -860,7 +871,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                 <p className="text-xs text-[#858078] uppercase">Takeaway Orders</p>
                 <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">{orders.length}</p>
                 <p className="text-[10px] text-emerald-400 mt-1">
-                  {orders.filter((o) => o.orderStatus === 'new').length} New Orders
+                  {orders.filter((o) => o.orderStatus === 'accepted' || o.orderStatus === 'ready_for_collection').length} Active Orders
                 </p>
               </div>
 
@@ -950,24 +961,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
             </div>
 
             <div className="flex flex-wrap gap-2 pb-2">
-              {['all', 'new', 'accepted', 'preparing', 'ready_for_collection', 'completed', 'cancelled'].map((st) => (
+              {[
+                { id: 'all', label: 'All Orders' },
+                { id: 'accepted', label: 'Order Accepted' },
+                { id: 'ready_for_collection', label: 'Ready for Collection' },
+                { id: 'completed', label: 'Completed' },
+              ].map((st) => (
                 <button
-                  key={st}
-                  onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wider ${
-                    statusFilter === st
-                      ? 'bg-[#800020] text-white'
+                  key={st.id}
+                  onClick={() => setStatusFilter(st.id)}
+                  className={`px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wider transition-colors ${
+                    statusFilter === st.id
+                      ? 'bg-[#800020] text-white shadow-sm'
                       : 'bg-[#1F181C] text-[#858078] hover:text-[#F5F1EA]'
                   }`}
                 >
-                  {st.replace('_', ' ')}
+                  {st.label}
                 </button>
               ))}
             </div>
 
             <div className="space-y-4">
               {orders
-                .filter((o) => (statusFilter === 'all' ? true : o.orderStatus === statusFilter))
+                .filter((o) => {
+                  if (statusFilter === 'all') return true;
+                  if (statusFilter === 'accepted') return o.orderStatus === 'accepted' || o.orderStatus === 'new';
+                  return o.orderStatus === statusFilter;
+                })
                 .map((order) => (
                   <div
                     key={order.id}
@@ -981,8 +1001,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                         </p>
                       </div>
 
-                      {/* Payment Status Badges strictly per prompt */}
-                      <div className="flex items-center space-x-2">
+                      {/* Payment Status Badges & Delete Order Button */}
+                      <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                         {order.paymentStatus === 'paid' && (
                           <span className="px-3 py-1 rounded text-xs font-bold uppercase bg-emerald-950 text-emerald-400 border border-emerald-500/30">
                             PAID
@@ -1008,6 +1028,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                             REFUNDED
                           </span>
                         )}
+
+                        {/* Individual Delete Order Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteOrder(order.orderId)}
+                          className="px-2.5 py-1 rounded bg-[#2A151C] hover:bg-red-950/80 text-red-300 hover:text-red-200 border border-red-500/40 text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm"
+                          title={`Permanently delete order #${order.orderId}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          <span>Delete</span>
+                        </button>
                       </div>
                     </div>
 
@@ -1055,13 +1086,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                       <div className="flex items-center space-x-2 text-xs">
                         <span className="text-[#858078]">Order Fulfilment:</span>
                         <select
-                          value={order.orderStatus}
+                          value={order.orderStatus === 'new' ? 'accepted' : order.orderStatus}
                           onChange={(e) => handleUpdateOrderStatus(order.orderId, e.target.value as any)}
                           className="px-3 py-1.5 rounded bg-[#161114] border border-[#A51C30]/50 text-[#F5F1EA] text-xs focus:outline-none focus:border-[#E23D5B] font-medium"
                         >
-                          {order.orderStatus === 'new' && (
-                            <option value="new">⏳ Order Received (Pending)</option>
-                          )}
                           <option value="accepted">Order Accepted</option>
                           <option value="ready_for_collection">Ready for Collection</option>
                           <option value="completed">Completed</option>
@@ -1593,10 +1621,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                       </td>
                       <td className="py-3 px-4 text-right">
                         <button
+                          type="button"
                           onClick={() => handleDeleteReservation(res.id)}
-                          className="p-1 text-[#858078] hover:text-red-400"
+                          className="px-2.5 py-1 rounded bg-[#2A151C] hover:bg-red-950/80 text-red-300 hover:text-red-200 border border-red-500/40 text-xs font-semibold inline-flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm"
+                          title={`Permanently delete reservation for ${res.customerName}`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          <span>Delete</span>
                         </button>
                       </td>
                     </tr>

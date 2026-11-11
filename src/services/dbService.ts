@@ -604,13 +604,12 @@ export async function deleteGalleryItem(id: string): Promise<void> {
   }
 }
 
-// ================= ORDERS =================
 export async function createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'orderStatus' | 'paymentStatus'>): Promise<Order> {
   const docId = orderData.orderId;
   const newOrder: Order = {
     ...orderData,
     id: docId,
-    orderStatus: 'new',
+    orderStatus: 'accepted',
     paymentStatus: 'unpaid',
     createdAt: new Date().toISOString()
   };
@@ -663,6 +662,14 @@ export async function updateOrderStatus(orderId: string, orderStatus: Order['ord
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `${ORDERS_COL}/${orderId}`);
+  }
+}
+
+export async function deleteOrder(orderId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, ORDERS_COL, orderId));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `${ORDERS_COL}/${orderId}`);
   }
 }
 
