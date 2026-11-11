@@ -83,6 +83,11 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, onC
                   {item.selectedProtein && (
                     <span className="text-[#A59E98] ml-1">({item.selectedProtein})</span>
                   )}
+                  {item.selectedCondiments && item.selectedCondiments.length > 0 && (
+                    <span className="text-amber-300 text-[11px] block font-mono">
+                      Chutneys: {item.selectedCondiments.join(', ')}
+                    </span>
+                  )}
                 </div>
                 <span className="text-[#F5B8C3] font-mono font-semibold">
                   £{(item.price * item.quantity).toFixed(2)}

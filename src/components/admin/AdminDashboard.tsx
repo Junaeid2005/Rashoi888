@@ -1062,10 +1062,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                     <div className="p-3 rounded bg-[#161114] text-xs space-y-1">
                       <span className="text-[10px] uppercase text-[#858078] tracking-wider">Ordered Dishes</span>
                       {order.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between">
-                          <span>
-                            {it.quantity}x {it.name} {it.selectedProtein && `(${it.selectedProtein})`}
-                          </span>
+                        <div key={idx} className="flex justify-between items-start">
+                          <div>
+                            <span className="text-[#F5F1EA]">
+                              {it.quantity}x {it.name} {it.selectedProtein && `(${it.selectedProtein})`}
+                            </span>
+                            {it.selectedCondiments && it.selectedCondiments.length > 0 && (
+                              <span className="block text-[11px] text-amber-300 font-mono mt-0.5">
+                                ↳ Accompaniments: {it.selectedCondiments.join(', ')}
+                              </span>
+                            )}
+                          </div>
                           <span className="font-mono text-[#FFFFFF]">£{(it.price * it.quantity).toFixed(2)}</span>
                         </div>
                       ))}

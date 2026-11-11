@@ -466,6 +466,11 @@ export const UserModal: React.FC<UserModalProps> = ({
                                         ({item.selectedProtein})
                                       </span>
                                     )}
+                                    {item.selectedCondiments && item.selectedCondiments.length > 0 && (
+                                      <p className="text-[11px] text-amber-300 font-mono mt-0.5">
+                                        Chutneys: {item.selectedCondiments.join(', ')}
+                                      </p>
+                                    )}
                                     <p className="text-[11px] text-[#A59E98]">£{item.price.toFixed(2)} each</p>
                                   </div>
                                   <span className="font-mono font-bold text-white">

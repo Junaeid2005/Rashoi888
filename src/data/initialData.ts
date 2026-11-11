@@ -179,7 +179,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   { id: 'sun-tandoori-roti', name: 'Tandoori Roti', categoryId: 'sundries', categoryName: 'Sundries', price: 2.95, isVegetarian: true, isAvailable: true, order: 9 },
   { id: 'sun-paratha', name: 'Paratha (Bread cooked in butter)', categoryId: 'sundries', categoryName: 'Sundries', price: 3.50, isVegetarian: true, isAvailable: true, order: 10 },
   { id: 'sun-stuffed-paratha', name: 'Stuffed Paratha (Stuffed with vegetables)', categoryId: 'sundries', categoryName: 'Sundries', price: 3.95, isVegetarian: true, isAvailable: true, order: 11 },
-  { id: 'sun-popadom', name: 'Popadom plain or spicy', categoryId: 'sundries', categoryName: 'Sundries', price: 0.90, isVegetarian: true, isAvailable: true, order: 12 },
+  { id: 'sun-papadam', name: 'Papadam', categoryId: 'sundries', categoryName: 'Sundries', price: 0.90, description: 'Crispy Indian lentil dough wafer roasted or fried. Served with your choice of Mango Chutney, Pickle Chutney, Onion Chutney, or Mint Sauce.', isVegetarian: true, isAvailable: true, order: 12 },
   { id: 'sun-chips', name: 'Chips', categoryId: 'sundries', categoryName: 'Sundries', price: 2.75, isVegetarian: true, isAvailable: true, order: 13 },
   { id: 'sun-raita', name: 'Raita (Plain yoghurt with cucumber or onions)', categoryId: 'sundries', categoryName: 'Sundries', price: 2.25, isVegetarian: true, isAvailable: true, order: 14 },
   { id: 'sun-chutney', name: 'Chutney', categoryId: 'sundries', categoryName: 'Sundries', price: 0.90, isVegetarian: true, isAvailable: true, order: 15 },

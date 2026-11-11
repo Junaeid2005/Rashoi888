@@ -61,11 +61,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     openDrawer: boolean = false
   ) => {
     const qty = item.quantity || 1;
-    const itemKey = `${item.name}-${item.selectedProtein || 'standard'}`;
+    const condKey = (item.selectedCondiments || []).slice().sort().join(',');
+    const itemKey = `${item.name}-${item.selectedProtein || 'standard'}-${condKey}`;
     
     setItems((prevItems) => {
       const existingIndex = prevItems.findIndex(
-        (i) => `${i.name}-${i.selectedProtein || 'standard'}` === itemKey
+        (i) => {
+          const iCondKey = (i.selectedCondiments || []).slice().sort().join(',');
+          return `${i.name}-${i.selectedProtein || 'standard'}-${iCondKey}` === itemKey;
+        }
       );
 
       if (existingIndex > -1) {

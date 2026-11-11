@@ -103,14 +103,18 @@ export const SignatureDishes: React.FC<SignatureDishesProps> = ({ dishes, onView
                 <div className="px-6 pb-6 pt-2">
                   {!isAdmin ? (
                     <button
-                      onClick={() =>
+                      onClick={() => {
+                        if (dish.name.toLowerCase().includes('papad')) {
+                          onViewMenu();
+                          return;
+                        }
                         addItem({
                           menuItemId: dish.id,
                           name: dish.name,
                           categoryName: dish.categoryName,
                           price: dish.price,
-                        })
-                      }
+                        });
+                      }}
                       className="w-full py-2.5 px-4 bg-[#800020] hover:bg-[#9B1130] text-[#FFFFFF] rounded-xl text-xs tracking-wider uppercase font-semibold transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md"
                     >
                       <Plus className="w-4 h-4" />

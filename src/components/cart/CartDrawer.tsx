@@ -251,6 +251,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                         Protein: {item.selectedProtein}
                       </p>
                     )}
+                    {item.selectedCondiments && item.selectedCondiments.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {item.selectedCondiments.map((cond, cIdx) => (
+                          <span
+                            key={cIdx}
+                            className={`text-[10px] px-2 py-0.5 rounded font-mono ${
+                              cond.includes('None')
+                                ? 'bg-[#291F24] text-zinc-300 border border-zinc-700/40'
+                                : 'bg-[#2D1621] text-amber-300 border border-amber-400/30 font-medium'
+                            }`}
+                          >
+                            {cond.includes('None') ? 'Plain Papadam' : `+ ${cond}`}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <p className="text-xs text-[#ABA29B] mt-0.5">
                       £{item.price.toFixed(2)} each
                     </p>

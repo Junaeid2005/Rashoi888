@@ -17,6 +17,7 @@ import {
   Award,
   Wine
 } from 'lucide-react';
+import { PapadamChutneyModal, PapadamDishInfo, isPapadamDish } from './PapadamChutneyModal';
 
 interface MenuPageProps {
   categories: MenuCategory[];
@@ -41,6 +42,9 @@ export const MenuPage: React.FC<MenuPageProps> = ({
     meta: DishVisualMeta;
   } | null>(null);
   const [modalQuantity, setModalQuantity] = useState(1);
+
+  // Papadam Chutney Customization Modal
+  const [papadamModalDish, setPapadamModalDish] = useState<PapadamDishInfo | null>(null);
 
   // Success Toast
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
@@ -106,20 +110,44 @@ export const MenuPage: React.FC<MenuPageProps> = ({
       }));
   }, [menuItems, activeCategoryId, dietaryFilter, searchQuery]);
 
-  const handleAddDish = (name: string, price: number, category: string, qty: number = 1) => {
+  const handleAddDish = (
+    name: string,
+    price: number,
+    category: string,
+    qty: number = 1,
+    condiments?: string[]
+  ) => {
     addItem({
       name,
       price,
       categoryName: category,
       quantity: qty,
+      selectedCondiments: condiments,
     });
-    setAddedNotice(`Added ${qty > 1 ? `${qty}x ` : ''}"${name}" to cart`);
-    setTimeout(() => setAddedNotice(null), 3000);
+    const condLabel = condiments && condiments.length > 0 && !condiments.includes('None (Plain Papadam)')
+      ? ` (${condiments.join(', ')})`
+      : '';
+    setAddedNotice(`Added ${qty > 1 ? `${qty}x ` : ''}"${name}"${condLabel} to order`);
+    setTimeout(() => setAddedNotice(null), 3500);
+  };
+
+  const handleInitiateAddDish = (dish: MenuItem, qty: number = 1) => {
+    if (isPapadamDish(dish.name)) {
+      setPapadamModalDish({
+        name: dish.name,
+        price: dish.price,
+        categoryName: dish.categoryName,
+        initialQty: qty,
+      });
+      return;
+    }
+    handleAddDish(dish.name, dish.price, dish.categoryName, qty);
   };
 
   const getItemCartQty = (itemName: string) => {
-    const line = cartItems.find((ci) => ci.name === itemName);
-    return line ? line.quantity : 0;
+    return cartItems
+      .filter((ci) => ci.name === itemName)
+      .reduce((sum, ci) => sum + ci.quantity, 0);
   };
 
   const activeCategoryObj = visibleCategories.find((c) => c.id === activeCategoryId);
@@ -395,8 +423,9 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                             <div className="flex items-center space-x-1">
                               <button
                                 onClick={() => {
-                                  const line = cartItems.find((ci) => ci.name === item.name);
-                                  if (line) updateQuantity(line.id, line.quantity - 1);
+                                  const matchingLines = cartItems.filter((ci) => ci.name === item.name);
+                                  const lastLine = matchingLines[matchingLines.length - 1];
+                                  if (lastLine) updateQuantity(lastLine.id, lastLine.quantity - 1);
                                 }}
                                 className="p-1 rounded bg-[#252525] hover:bg-[#800020] text-white transition-colors cursor-pointer"
                                 aria-label="Decrease"
@@ -404,7 +433,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
                               <button
-                                onClick={() => handleAddDish(item.name, item.price, item.categoryName)}
+                                onClick={() => handleInitiateAddDish(item)}
                                 className="p-1 rounded bg-[#252525] hover:bg-[#800020] text-white transition-colors cursor-pointer"
                                 aria-label="Increase"
                               >
@@ -414,11 +443,13 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                           </div>
                         ) : (
                           <button
-                            onClick={() => handleAddDish(item.name, item.price, item.categoryName)}
+                            onClick={() => handleInitiateAddDish(item)}
                             className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md bg-[#800020] hover:bg-[#9B1130] text-white"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>Add to Order</span>
+                            <span>
+                              {isPapadamDish(item.name) ? 'Choose Chutneys & Order' : 'Add to Order'}
+                            </span>
                           </button>
                         )}
                       </div>
@@ -520,6 +551,19 @@ export const MenuPage: React.FC<MenuPageProps> = ({
 
                     <button
                       onClick={() => {
+                        if (isPapadamDish(selectedDish.item.name)) {
+                          const item = selectedDish.item;
+                          const qty = modalQuantity;
+                          setSelectedDish(null);
+                          setModalQuantity(1);
+                          setPapadamModalDish({
+                            name: item.name,
+                            price: item.price,
+                            categoryName: item.categoryName,
+                            initialQty: qty,
+                          });
+                          return;
+                        }
                         handleAddDish(
                           selectedDish.item.name,
                           selectedDish.item.price,
@@ -533,8 +577,9 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                     >
                       <Plus className="w-4 h-4" />
                       <span>
-                        Add to Order • £
-                        {(selectedDish.item.price * modalQuantity).toFixed(2)}
+                        {isPapadamDish(selectedDish.item.name)
+                          ? `Choose Chutneys & Order • £${(selectedDish.item.price * modalQuantity).toFixed(2)}`
+                          : `Add to Order • £${(selectedDish.item.price * modalQuantity).toFixed(2)}`}
                       </span>
                     </button>
                   </>
@@ -553,6 +598,25 @@ export const MenuPage: React.FC<MenuPageProps> = ({
           <span>{addedNotice}</span>
         </div>
       )}
+
+      {/* ================= PAPADAM CHUTNEY & SAUCE CUSTOMIZATION MODAL ================= */}
+      <PapadamChutneyModal
+        isOpen={!!papadamModalDish}
+        dish={papadamModalDish}
+        onClose={() => setPapadamModalDish(null)}
+        onConfirm={(qty, selectedCondiments) => {
+          if (papadamModalDish) {
+            handleAddDish(
+              papadamModalDish.name,
+              papadamModalDish.price,
+              papadamModalDish.categoryName || 'Sundries',
+              qty,
+              selectedCondiments
+            );
+          }
+          setPapadamModalDish(null);
+        }}
+      />
 
     </div>
   );

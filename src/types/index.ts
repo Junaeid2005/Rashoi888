@@ -45,6 +45,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   selectedProtein?: string;
+  selectedCondiments?: string[];
   notes?: string;
 }
 
