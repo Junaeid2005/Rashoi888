@@ -53,9 +53,7 @@ import {
   UtensilsCrossed,
   Layers,
   CalendarCheck,
-  CalendarX,
   MessageSquare,
-  Star,
   Image as ImageIcon,
   Home,
   Info,
@@ -81,7 +79,42 @@ import {
   BellRing,
   ArrowLeft,
   Mail,
+  Upload,
 } from 'lucide-react';
+import { getDishVisualMeta } from '../../utils/menuImageResolver';
+import { resolveAssetUrl } from '../../utils/imagePath';
+
+function compressImageFile(file: File, maxWidth = 800, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 interface AdminDashboardProps {
   onReturnToSite: () => void;
@@ -98,10 +131,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
     | 'classicPricing'
     | 'categories'
     | 'reservations'
-    | 'fullyBooked'
     | 'messages'
-    | 'reviews'
-    | 'gallery'
     | 'homepage'
     | 'restaurantInfo'
     | 'paymentSettings'
@@ -546,12 +576,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'orders', label: 'Orders Management', icon: ShoppingBag, count: orders.filter(o => o.orderStatus === 'new').length },
     { id: 'reservations', label: 'Table Reservations', icon: CalendarCheck, count: reservations.filter(r => r.status === 'pending').length },
-    { id: 'fullyBooked', label: 'Fully Booked Control', icon: CalendarX, count: fullyBookedDates.filter(d => d.isFullyBooked).length },
     { id: 'menu', label: 'Menu Management', icon: UtensilsCrossed },
     { id: 'classicPricing', label: 'Classic Dishes Matrix', icon: Layers },
     { id: 'messages', label: 'Customer Messages', icon: MessageSquare, count: messages.filter(m => m.status === 'unread').length },
-    { id: 'reviews', label: 'Reviews', icon: Star },
-    { id: 'gallery', label: 'Gallery', icon: ImageIcon },
     { id: 'homepage', label: 'Homepage Content', icon: Home },
     { id: 'restaurantInfo', label: 'Restaurant Info', icon: Info },
     { id: 'paymentSettings', label: 'Payment Settings', icon: CreditCard },
@@ -838,11 +865,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
               </div>
 
               <div className="p-5 rounded-xl bg-[#1F181C] border border-[#262626]">
-                <p className="text-xs text-[#858078] uppercase">Blocked Dates</p>
-                <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">
-                  {fullyBookedDates.filter((d) => d.isFullyBooked).length}
+                <p className="text-xs text-[#858078] uppercase">Customer Inquiries</p>
+                <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">{messages.length}</p>
+                <p className="text-[10px] text-[#F5B8C3] mt-1">
+                  {messages.filter((m) => m.status === 'unread').length} Unread Messages
                 </p>
-                <p className="text-[10px] text-[#858078] mt-1">Marked Fully Booked</p>
               </div>
             </div>
 
@@ -1070,6 +1097,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                     categoryName: categories[0]?.name || 'Appetisers',
                     price: 9.95,
                     description: '',
+                    imageUrl: '',
                     isAvailable: true,
                     isVegetarian: false,
                     isFeatured: false,
@@ -1090,6 +1118,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-[#161114] border-b border-[#262626] text-[#858078] uppercase">
+                    <th className="py-3 px-4 w-16">Photo</th>
                     <th className="py-3 px-4">Dish Name</th>
                     <th className="py-3 px-4">Category</th>
                     <th className="py-3 px-4">Price (GBP)</th>
@@ -1101,6 +1130,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                 <tbody className="divide-y divide-[#262626]">
                   {menuItems.map((item) => (
                     <tr key={item.id} className="hover:bg-[#292025]/50">
+                      <td className="py-3 px-4">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#161114] border border-[#A51C30]/30 shrink-0 relative">
+                          <img
+                            src={item.imageUrl ? resolveAssetUrl(item.imageUrl) : getDishVisualMeta(item).imageUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/images/rashoi_signature_dish_1794139812970.jpg';
+                            }}
+                          />
+                          {item.imageUrl && (
+                            <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-black" title="Custom photo added" />
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 px-4 font-semibold text-[#F5F1EA]">
                         {item.name}
                         {item.isFeatured && (
@@ -1153,7 +1197,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
               <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                 <form
                   onSubmit={handleSaveMenuItem}
-                  className="w-full max-w-lg rounded-2xl bg-[#1F181C] border border-[#800020]/50 p-6 space-y-4 text-xs text-left"
+                  className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#1F181C] border border-[#800020]/50 p-6 space-y-4 text-xs text-left"
                 >
                   <div className="flex justify-between items-center border-b border-[#262626] pb-3">
                     <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">
@@ -1177,6 +1221,82 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                       onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
                       className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm focus:border-[#A51C30]"
                     />
+                  </div>
+
+                  {/* Dish Photo Upload & Preview Section */}
+                  <div className="p-3.5 rounded-xl bg-[#161114] border border-[#262626] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="uppercase text-[#858078] font-semibold text-[11px] flex items-center space-x-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-[#E23D5B]" />
+                        <span>Dish Photo</span>
+                      </label>
+                      {editingItem.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingItem({ ...editingItem, imageUrl: '' })}
+                          className="text-[10px] text-red-400 hover:text-red-300 font-medium cursor-pointer"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-start space-x-3.5">
+                      {/* Photo Preview */}
+                      <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#A51C30]/40 bg-[#1F181C] shrink-0 relative group">
+                        <img
+                          src={editingItem.imageUrl ? resolveAssetUrl(editingItem.imageUrl) : getDishVisualMeta(editingItem).imageUrl}
+                          alt="Dish Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/images/rashoi_signature_dish_1794139812970.jpg';
+                          }}
+                        />
+                        {editingItem.imageUrl && (
+                          <span className="absolute bottom-1 right-1 bg-emerald-950 text-emerald-300 text-[9px] px-1.5 py-0.5 rounded font-mono font-bold border border-emerald-500/40">
+                            Custom
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Upload / URL Options */}
+                      <div className="flex-1 space-y-2">
+                        <div>
+                          <label className="inline-flex items-center px-3.5 py-2 rounded-lg bg-[#800020] hover:bg-[#9B1130] text-white font-bold text-xs cursor-pointer shadow transition-all space-x-1.5">
+                            <Upload className="w-3.5 h-3.5 text-[#F5B8C3]" />
+                            <span>Upload Photo from Device</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  const compressedDataUrl = await compressImageFile(file);
+                                  setEditingItem({ ...editingItem, imageUrl: compressedDataUrl });
+                                } catch (err) {
+                                  alert('Could not process image file');
+                                }
+                              }}
+                            />
+                          </label>
+                          <p className="text-[10px] text-[#858078] mt-1">
+                            JPG, PNG, or WEBP (auto-compressed for fast loading)
+                          </p>
+                        </div>
+
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Or paste image URL (https://...)"
+                            value={editingItem.imageUrl || ''}
+                            onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })}
+                            className="w-full px-3 py-1.5 rounded bg-[#1F181C] border border-[#262626] text-[#F5F1EA] text-xs focus:border-[#A51C30]"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -1420,97 +1540,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
           </div>
         )}
 
-        {/* ================= 5. FULLY BOOKED DATE CONTROL (CRITICAL FEATURE) ================= */}
-        {activeTab === 'fullyBooked' && (
-          <div className="space-y-8 max-w-4xl">
-            <div>
-              <h2 className="font-serif text-3xl font-bold text-[#FFFFFF]">Fully Booked Date Control</h2>
-              <p className="text-xs text-[#858078] mt-1">
-                Mark specific dates as Fully Booked to immediately disable table reservations for that day.
-              </p>
-            </div>
-
-            {/* Block New Date Form */}
-            <div className="p-6 rounded-xl bg-[#1F181C] border border-[#800020]/40 space-y-4">
-              <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">
-                Block a Specific Date
-              </h3>
-
-              <form onSubmit={handleAddFullyBookedDate} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
-                <div className="sm:col-span-4">
-                  <label className="block text-xs uppercase text-[#858078] mb-1">Select Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={newBlockedDate}
-                    onChange={(e) => setNewBlockedDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm focus:border-[#A51C30]"
-                  />
-                </div>
-
-                <div className="sm:col-span-5">
-                  <label className="block text-xs uppercase text-[#858078] mb-1">Reason / Note</label>
-                  <input
-                    type="text"
-                    value={blockedReason}
-                    onChange={(e) => setBlockedReason(e.target.value)}
-                    placeholder="e.g. Private corporate event, fully booked"
-                    className="w-full px-3 py-2 rounded bg-[#161114] border border-[#262626] text-[#F5F1EA] text-sm focus:border-[#A51C30]"
-                  />
-                </div>
-
-                <div className="sm:col-span-3">
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-red-800 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded"
-                  >
-                    Mark Fully Booked
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Active Blocked Dates List */}
-            <div className="p-6 rounded-xl bg-[#1F181C] border border-[#262626] space-y-4">
-              <h3 className="font-serif text-lg font-bold text-[#F5F1EA]">
-                Currently Blocked Dates ({fullyBookedDates.filter(d => d.isFullyBooked).length})
-              </h3>
-
-              {fullyBookedDates.filter(d => d.isFullyBooked).length === 0 ? (
-                <p className="text-xs text-[#858078]">No dates are currently marked fully booked. All dates accept reservations.</p>
-              ) : (
-                <div className="space-y-3">
-                  {fullyBookedDates
-                    .filter((d) => d.isFullyBooked)
-                    .map((item) => (
-                      <div
-                        key={item.date}
-                        className="p-4 rounded-lg bg-[#161114] border border-amber-600/30 flex items-center justify-between text-xs"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <CalendarX className="w-5 h-5 text-amber-500 shrink-0" />
-                          <div>
-                            <span className="font-serif font-bold text-sm text-[#F5F1EA]">{item.date}</span>
-                            <p className="text-[#858078]">{item.reason || 'Fully booked by restaurant'}</p>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => handleRemoveBlockedDate(item.date)}
-                          className="px-3 py-1.5 rounded bg-emerald-950 text-emerald-400 hover:bg-emerald-900 border border-emerald-500/30 font-semibold uppercase text-[10px]"
-                        >
-                          Reopen Bookings
-                        </button>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-
-          </div>
-        )}
-
-        {/* ================= 6. TABLE RESERVATIONS ================= */}
+        {/* ================= 5. TABLE RESERVATIONS ================= */}
         {activeTab === 'reservations' && (
           <div className="space-y-6 max-w-6xl">
             <div>
