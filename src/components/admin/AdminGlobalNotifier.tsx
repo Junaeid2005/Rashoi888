@@ -162,8 +162,11 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
           // Always play 5-second alert bell for admin on incoming order
           playAdminAlertChime();
 
+          const chutneyList = o.items.flatMap(i => i.selectedCondiments || []).filter(c => !c.includes('None'));
+          const chutneyText = chutneyList.length > 0 ? ` (Chutneys: ${chutneyList.join(', ')})` : '';
+
           sendDesktopNotification(`Rashoi: New Takeaway Order #${o.orderId}`, {
-            body: `${o.customerName} placed an order for £${o.totalAmount.toFixed(2)} (${o.items.length} items).`,
+            body: `${o.customerName} placed an order for £${o.totalAmount.toFixed(2)}${chutneyText}.`,
           });
 
           // Show floating alert banner
@@ -171,7 +174,7 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
             id: o.orderId,
             type: 'order',
             title: `New Takeaway Order #${o.orderId}`,
-            subtitle: `${o.customerName} ordered ${o.items.length} item(s) • Total: £${o.totalAmount.toFixed(2)}`,
+            subtitle: `${o.customerName} ordered ${o.items.length} item(s) • Total: £${o.totalAmount.toFixed(2)}${chutneyText}`,
             customer: o.customerName,
             amount: `£${o.totalAmount.toFixed(2)}`,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

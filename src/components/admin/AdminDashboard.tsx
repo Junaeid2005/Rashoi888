@@ -81,6 +81,7 @@ import {
   ArrowLeft,
   Mail,
   Upload,
+  Printer,
 } from 'lucide-react';
 import { getDishVisualMeta } from '../../utils/menuImageResolver';
 import { resolveAssetUrl } from '../../utils/imagePath';
@@ -904,6 +905,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                     <div>
                       <p className="font-mono font-bold text-[#FFFFFF]">{ord.orderId}</p>
                       <p className="text-[#858078]">{ord.customerName} • {ord.items.length} items</p>
+                      {ord.items.some((it) => it.selectedCondiments && it.selectedCondiments.length > 0) && (
+                        <p className="text-[10px] text-amber-300 font-mono mt-0.5">
+                          ↳ Chutneys: {ord.items.flatMap((it) => it.selectedCondiments || []).join(', ')}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-[#F5F1EA]">£{ord.totalAmount.toFixed(2)}</p>
@@ -1029,6 +1035,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                           </span>
                         )}
 
+                        {/* Print Kitchen Slip Button */}
+                        <button
+                          type="button"
+                          onClick={() => window.print()}
+                          className="px-2.5 py-1 rounded bg-[#1A1418] hover:bg-[#2A1F24] text-[#D4CDC5] hover:text-white border border-[#3A2A30] text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm"
+                          title={`Print Kitchen Slip for Order #${order.orderId}`}
+                        >
+                          <Printer className="w-3.5 h-3.5 text-[#E23D5B]" />
+                          <span>Print Slip</span>
+                        </button>
+
                         {/* Individual Delete Order Button */}
                         <button
                           type="button"
@@ -1058,25 +1075,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                       </div>
                     </div>
 
-                    {/* Items List */}
-                    <div className="p-3 rounded bg-[#161114] text-xs space-y-1">
-                      <span className="text-[10px] uppercase text-[#858078] tracking-wider">Ordered Dishes</span>
-                      {order.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[#F5F1EA]">
-                              {it.quantity}x {it.name} {it.selectedProtein && `(${it.selectedProtein})`}
+                    {/* Items List / Kitchen Preparation List */}
+                    <div className="p-4 rounded-xl bg-[#161114] border border-[#2D2228] text-xs space-y-2.5">
+                      <div className="flex items-center justify-between pb-1.5 border-b border-[#251D22]">
+                        <span className="text-[11px] uppercase text-[#F5B8C3] font-mono tracking-wider font-bold">
+                          Kitchen Prep List ({order.items.reduce((s, i) => s + i.quantity, 0)} Items)
+                        </span>
+                        <span className="text-[10px] text-[#A59E98] uppercase">
+                          Check Chutneys & Sauces Before Packing
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {order.items.map((it, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 rounded-lg bg-[#1D151A] border border-[#3A2732] flex justify-between items-start gap-3 shadow-inner"
+                          >
+                            <div className="space-y-1.5 flex-1">
+                              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                                <span className="px-2 py-0.5 rounded bg-[#800020] text-white font-mono font-bold text-xs shadow-sm">
+                                  {it.quantity}x
+                                </span>
+                                <span className="font-bold text-sm text-white">
+                                  {it.name}
+                                </span>
+                                {it.selectedProtein && (
+                                  <span className="text-xs text-[#E23D5B] font-mono font-bold px-2 py-0.5 rounded bg-[#2D1A22] border border-[#800020]/40">
+                                    Protein: {it.selectedProtein}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Prominent Chutneys / Sauces Display for Admin / Kitchen */}
+                              {it.selectedCondiments && it.selectedCondiments.length > 0 && (
+                                <div className="mt-1.5 p-2 rounded-lg bg-[#27141E] border border-amber-500/40 flex flex-wrap items-center gap-1.5 shadow-sm">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 bg-amber-950 px-2 py-0.5 rounded border border-amber-500/50">
+                                    Sauces / Chutneys:
+                                  </span>
+                                  {it.selectedCondiments.map((cond, cIdx) => (
+                                    <span
+                                      key={cIdx}
+                                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full border shadow-sm ${
+                                        cond.includes('None')
+                                          ? 'bg-zinc-800 text-zinc-300 border-zinc-600'
+                                          : 'bg-[#800020] text-white border-[#E23D5B] font-mono'
+                                      }`}
+                                    >
+                                      {cond.includes('None') ? '🚫 None (Plain Papadam - No Sauce)' : `✓ ${cond}`}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <span className="font-mono text-sm font-bold text-white shrink-0">
+                              £{(it.price * it.quantity).toFixed(2)}
                             </span>
-                            {it.selectedCondiments && it.selectedCondiments.length > 0 && (
-                              <span className="block text-[11px] text-amber-300 font-mono mt-0.5">
-                                ↳ Accompaniments: {it.selectedCondiments.join(', ')}
-                              </span>
-                            )}
                           </div>
-                          <span className="font-mono text-[#FFFFFF]">£{(it.price * it.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
-                      <div className="pt-2 border-t border-[#202020] flex justify-between font-bold text-sm">
+                        ))}
+                      </div>
+
+                      <div className="pt-2 border-t border-[#251D22] flex justify-between font-bold text-sm">
                         <span>Total:</span>
                         <span className="font-mono text-[#FFFFFF]">£{order.totalAmount.toFixed(2)}</span>
                       </div>
