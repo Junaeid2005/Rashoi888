@@ -365,7 +365,7 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
                 {/* Guests */}
                 <div>
                   <label className="block text-xs uppercase tracking-wider text-[#FFFFFF] mb-2 font-medium">
-                    <Users className="w-3.5 h-3.5 inline mr-1 text-[#E23D5B]" /> Number of Guests * (1 to 30)
+                    <Users className="w-3.5 h-3.5 inline mr-1 text-[#E23D5B]" /> Number of Guests * (1 to 50)
                   </label>
                   <select
                     value={guests}
@@ -373,7 +373,7 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
                     required
                     className="w-full px-4 py-3 rounded-xl bg-[#161013] border border-[#A51C30]/35 focus:border-[#E23D5B] text-[#FFFFFF] text-sm focus:outline-none transition-colors shadow-inner"
                   >
-                    {Array.from({ length: 30 }, (_, i) => i + 1).map((num) => (
+                    {Array.from({ length: 50 }, (_, i) => i + 1).map((num) => (
                       <option key={num} value={num} className="bg-[#1F181C] text-[#FFFFFF]">
                         {num} {num === 1 ? 'Guest' : 'Guests'}
                       </option>
