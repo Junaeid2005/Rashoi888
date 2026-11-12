@@ -55,6 +55,7 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
 
   const [isMinimized, setIsMinimized] = useState<boolean>(false);
 
+  const sessionMountTimeRef = useRef<number>(Date.now());
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const isInitialOrdersRef = useRef<boolean>(true);
 
@@ -62,6 +63,27 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
   const isInitialReservationsRef = useRef<boolean>(true);
 
   const autoDismissTimerRef = useRef<any>(null);
+
+  // Helper to persist seen alert IDs so page refresh never re-alerts old orders
+  const getSeenIds = (key: string): Set<string> => {
+    try {
+      if (typeof window === 'undefined') return new Set();
+      const raw = localStorage.getItem(key);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  };
+
+  const markIdAsSeen = (key: string, id: string) => {
+    try {
+      if (typeof window === 'undefined') return;
+      const set = getSeenIds(key);
+      set.add(id);
+      const arr = Array.from(set).slice(-300);
+      localStorage.setItem(key, JSON.stringify(arr));
+    } catch {}
+  };
 
   // Resume Web Audio context on any first click in window
   useEffect(() => {
@@ -135,31 +157,55 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
   useEffect(() => {
     if (!isAdmin) return;
 
+    const seenOrderStorage = getSeenIds('rashoi_seen_order_ids');
+    const seenReservationStorage = getSeenIds('rashoi_seen_reservation_ids');
+
     // Real-time listener for Orders
     const ordersQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
     const unsubscribeOrders = onSnapshot(
       ordersQuery,
       (snapshot) => {
+        // If this is the initial snapshot upon mounting/refreshing, seed all existing IDs
+        if (isInitialOrdersRef.current) {
+          snapshot.docs.forEach((docSnap) => {
+            const ord = docSnap.data() as Order;
+            const oid = ord.orderId || docSnap.id;
+            knownOrderIdsRef.current.add(oid);
+            markIdAsSeen('rashoi_seen_order_ids', oid);
+          });
+          isInitialOrdersRef.current = false;
+          return; // NEVER trigger notification on initial load or refresh!
+        }
+
         let hasNew = false;
         let latestOrder: Order | null = null;
 
         snapshot.docs.forEach((docSnap) => {
           const ord = docSnap.data() as Order;
-          if (!isInitialOrdersRef.current && !knownOrderIdsRef.current.has(ord.orderId)) {
-            if (ord.orderStatus === 'accepted' || ord.orderStatus === 'new') {
+          const oid = ord.orderId || docSnap.id;
+
+          // Only consider orders that are truly new (not known before)
+          if (!knownOrderIdsRef.current.has(oid) && !seenOrderStorage.has(oid)) {
+            // An order is only "new" if it was placed after the session started (not an old order)
+            const orderCreatedMs = ord.createdAt ? new Date(ord.createdAt).getTime() : 0;
+            const isFreshOrder = orderCreatedMs > (sessionMountTimeRef.current - 5000);
+
+            // Only notify if active/new, definitely not completed or cancelled
+            const isActiveStatus = ord.orderStatus === 'accepted' || ord.orderStatus === 'new';
+
+            if (isFreshOrder && isActiveStatus) {
               hasNew = true;
               latestOrder = ord;
             }
           }
-          knownOrderIdsRef.current.add(ord.orderId);
+          knownOrderIdsRef.current.add(oid);
+          markIdAsSeen('rashoi_seen_order_ids', oid);
         });
 
-        if (isInitialOrdersRef.current) {
-          isInitialOrdersRef.current = false;
-        } else if (hasNew && latestOrder) {
+        if (hasNew && latestOrder) {
           const o = latestOrder as Order;
 
-          // Always play 5-second alert bell for admin on incoming order
+          // Play alert chime for admin on incoming order
           playAdminAlertChime();
 
           const chutneyList = o.items.flatMap(i => i.selectedCondiments || []).filter(c => !c.includes('None'));
@@ -197,26 +243,44 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
     const unsubscribeReservations = onSnapshot(
       reservationsQuery,
       (snapshot) => {
+        // If this is the initial snapshot upon mounting/refreshing, seed all existing IDs
+        if (isInitialReservationsRef.current) {
+          snapshot.docs.forEach((docSnap) => {
+            const res = docSnap.data() as Reservation;
+            const rid = res.id || docSnap.id;
+            knownReservationIdsRef.current.add(rid);
+            markIdAsSeen('rashoi_seen_reservation_ids', rid);
+          });
+          isInitialReservationsRef.current = false;
+          return; // NEVER trigger notification on initial load or refresh!
+        }
+
         let hasNew = false;
         let latestRes: Reservation | null = null;
 
         snapshot.docs.forEach((docSnap) => {
           const res = docSnap.data() as Reservation;
-          if (!isInitialReservationsRef.current && !knownReservationIdsRef.current.has(res.id)) {
-            if (res.status === 'pending') {
+          const rid = res.id || docSnap.id;
+
+          if (!knownReservationIdsRef.current.has(rid) && !seenReservationStorage.has(rid)) {
+            // Check if created after session mount
+            const resCreatedMs = res.createdAt ? new Date(res.createdAt).getTime() : 0;
+            const isFreshBooking = resCreatedMs > (sessionMountTimeRef.current - 5000);
+
+            // Only notify if pending booking request
+            if (isFreshBooking && res.status === 'pending') {
               hasNew = true;
               latestRes = res;
             }
           }
-          knownReservationIdsRef.current.add(res.id);
+          knownReservationIdsRef.current.add(rid);
+          markIdAsSeen('rashoi_seen_reservation_ids', rid);
         });
 
-        if (isInitialReservationsRef.current) {
-          isInitialReservationsRef.current = false;
-        } else if (hasNew && latestRes) {
+        if (hasNew && latestRes) {
           const r = latestRes as Reservation;
 
-          // Always play 5-second alert bell for admin on incoming reservation
+          // Play alert chime for admin on incoming reservation
           playAdminAlertChime();
 
           sendDesktopNotification(`Rashoi: Table Booking from ${r.customerName}`, {
