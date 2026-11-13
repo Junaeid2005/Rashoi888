@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { createOrder } from '../../services/dbService';
@@ -67,6 +67,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
   const [paymentMethod, setPaymentMethod] = useState<'collection' | 'stripe'>('collection');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const checkoutEnteredAtRef = useRef<number>(0);
+  const bodyScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Sync user credentials whenever user signs in
   useEffect(() => {
@@ -75,6 +77,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
       if (user.email && !customerEmail) setCustomerEmail(user.email);
     }
   }, [user]);
+
+  // Always reset to basket view when drawer closes so reopening never skips item review
+  useEffect(() => {
+    if (!isCartOpen) {
+      setIsCheckingOut(false);
+      setFormError(null);
+    }
+  }, [isCartOpen]);
 
   const stripeActive = isStripeOnlinePaymentActive();
 
@@ -91,6 +101,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    // Prevent accidental submission from double-tap or event carryover right after clicking Proceed to Checkout
+    if (!isCheckingOut || Date.now() - checkoutEnteredAtRef.current < 450) {
+      return;
+    }
 
     if (!user) {
       signInWithGoogle();
@@ -204,6 +219,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
             </h2>
           </div>
           <button
+            type="button"
             onClick={handleCloseCart}
             className="p-1.5 text-[#ABA29B] hover:text-[#FFFFFF] rounded-full hover:bg-[#291F24] transition-colors cursor-pointer"
           >
@@ -212,7 +228,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
         </div>
 
         {/* Body Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div ref={bodyScrollRef} className="flex-1 overflow-y-auto p-6 space-y-6">
           {isAdmin ? (
             <div className="py-20 text-center space-y-4 px-4">
               <div className="w-16 h-16 rounded-full bg-[#291F24] border border-[#A51C30] flex items-center justify-center mx-auto text-[#E23D5B] shadow-lg">
@@ -286,6 +302,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                   {/* Quantity Stepper */}
                   <div className="flex items-center space-x-2 bg-[#291F24] rounded-lg px-2 py-1 border border-[#A51C30]/30">
                     <button
+                      type="button"
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
                       className="p-0.5 text-[#ABA29B] hover:text-white cursor-pointer"
                     >
@@ -295,6 +312,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                       {item.quantity}
                     </span>
                     <button
+                      type="button"
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
                       className="p-0.5 text-[#ABA29B] hover:text-white cursor-pointer"
                     >
@@ -308,6 +326,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                       £{(item.price * item.quantity).toFixed(2)}
                     </span>
                     <button
+                      type="button"
                       onClick={() => removeItem(item.id)}
                       className="text-[#ABA29B] hover:text-red-400 p-1 cursor-pointer"
                     >
@@ -319,7 +338,44 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
             </div>
           ) : (
             /* Checkout Form */
-            <form id="checkout-form" onSubmit={handlePlaceOrder} className="space-y-4 text-left">
+            <form
+              id="checkout-form"
+              onSubmit={handlePlaceOrder}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.target as HTMLElement)?.tagName === 'INPUT') {
+                  e.preventDefault();
+                }
+              }}
+              className="space-y-4 text-left"
+            >
+              {/* Itemized Review Summary so customer can double-check order before placing */}
+              <div className="p-3.5 rounded-xl bg-[#1A1418] border border-[#A51C30]/35 space-y-2">
+                <div className="flex items-center justify-between border-b border-[#2D2228] pb-1.5">
+                  <span className="text-[11px] uppercase tracking-wider text-[#F5B8C3] font-bold">
+                    Order Summary ({items.reduce((s, i) => s + i.quantity, 0)} items)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsCheckingOut(false)}
+                    className="text-[11px] text-[#E23D5B] hover:underline font-semibold cursor-pointer"
+                  >
+                    Edit Basket
+                  </button>
+                </div>
+                <div className="space-y-1 max-h-32 overflow-y-auto text-xs">
+                  {items.map((it) => (
+                    <div key={it.id} className="flex justify-between gap-2 text-[#E2DDD7]">
+                      <span className="truncate">
+                        {it.quantity}x {it.name}
+                        {it.selectedProtein ? ` (${it.selectedProtein})` : ''}
+                      </span>
+                      <span className="font-mono text-white shrink-0">
+                        £{(it.price * it.quantity).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
               
               {!user ? (
                 <div className="p-4 rounded-xl bg-[#291F24] border border-[#A51C30]/50 space-y-2.5">
@@ -534,6 +590,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
             {!isCheckingOut ? (
               <div className="pt-2 flex space-x-3">
                 <button
+                  key="clear-cart-btn"
+                  type="button"
                   onClick={clearCart}
                   className="px-3.5 py-3 border border-[#A51C30]/35 bg-[#1F181C] text-[#ABA29B] hover:text-red-400 rounded-xl text-xs uppercase cursor-pointer"
                   title="Clear Cart"
@@ -541,7 +599,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setIsCheckingOut(true)}
+                  key="proceed-to-checkout-btn"
+                  type="button"
+                  onClick={() => {
+                    checkoutEnteredAtRef.current = Date.now();
+                    setFormError(null);
+                    setIsCheckingOut(true);
+                    bodyScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   className="flex-1 py-3.5 nav-burgundy-btn text-white font-bold text-xs tracking-widest uppercase rounded-xl shadow-lg cursor-pointer transition-all"
                 >
                   Proceed to Checkout
@@ -550,6 +615,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
             ) : (
               <div className="pt-2 flex space-x-3">
                 <button
+                  key="back-to-cart-btn"
                   type="button"
                   onClick={() => setIsCheckingOut(false)}
                   className="px-4 py-3 border border-[#A51C30]/35 bg-[#1F181C] text-[#FFFFFF] hover:bg-[#291F24] rounded-xl text-xs uppercase cursor-pointer font-semibold"
@@ -559,6 +625,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
 
                 {!user ? (
                   <button
+                    key="signin-to-order-btn"
                     type="button"
                     onClick={() => signInWithGoogle()}
                     className="flex-1 py-3.5 bg-white text-neutral-900 hover:bg-neutral-100 font-bold text-xs tracking-wider uppercase rounded-xl shadow-lg cursor-pointer transition-all flex items-center justify-center space-x-2"
@@ -568,6 +635,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                   </button>
                 ) : (
                   <button
+                    key="place-order-confirm-btn"
                     type="submit"
                     form="checkout-form"
                     disabled={submitting}
