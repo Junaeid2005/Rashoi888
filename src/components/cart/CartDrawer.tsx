@@ -259,7 +259,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                     </h4>
                     {item.selectedProtein && (
                       <p className="text-[11px] text-[#E23D5B] font-mono font-semibold">
-                        Protein: {item.selectedProtein}
+                        Option: {item.selectedProtein}
                       </p>
                     )}
                     {item.selectedCondiments && item.selectedCondiments.length > 0 && (

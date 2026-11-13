@@ -87,21 +87,7 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   { id: 'spec-nagga-chicken', name: 'Nagga Chicken', categoryId: 'rashoi-specials', categoryName: 'Rashoi Special Dishes', price: 11.95, description: 'A very hot curry cooked with onions and garlic.', isAvailable: true, order: 19 },
   { id: 'spec-makani', name: 'Chicken or Lamb Makani', categoryId: 'rashoi-specials', categoryName: 'Rashoi Special Dishes', price: 11.95, description: 'Chicken or lamb cooked with almonds and mint yoghurt and butter.', isAvailable: true, order: 20 },
 
-  // Classic Dishes (Curry Favourites)
-  { id: 'classic-korma', name: 'Chicken or Lamb Korma', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 9.95, description: 'A delicate preparation of yoghurt, cream and ground spices producing a rich, mild and creamy texture.', isAvailable: true, order: 1 },
-  { id: 'classic-kashmiri', name: 'Chicken or Lamb Kashmiri', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 9.95, description: 'A mild and fruity curry infused with bananas, lychees and a rich creamy sauce.', isAvailable: true, order: 2 },
-  { id: 'classic-madras', name: 'Chicken or Lamb Madras', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 9.95, description: 'A richly spiced South Indian favourite with a fiery, hot and sour taste with fresh lemon.', isAvailable: true, order: 3 },
-  { id: 'classic-vindaloo', name: 'Chicken or Lamb Vindaloo', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 9.95, description: 'An extra hot, fiery curry with red chillies, vinegar, garlic and diced potatoes.', isAvailable: true, order: 4 },
-  { id: 'classic-rogan-josh', name: 'Chicken or Lamb Rogan Josh', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 9.95, description: 'Tender meat slow simmered in an aromatic spiced tomato, garlic, ginger and fresh coriander reduction.', isAvailable: true, isFeatured: true, order: 5 },
-  { id: 'classic-bhuna', name: 'Chicken or Lamb Bhuna', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 9.95, description: 'Thoroughly seasoned with finely chopped onions, capsicum, fresh coriander and thick spicy sauce.', isAvailable: true, order: 6 },
-  { id: 'classic-dupiaza', name: 'Chicken or Lamb Dupiaza', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 9.95, description: 'Medium spiced dish prepared with seasoned braised onions and briskly fried peppers.', isAvailable: true, order: 7 },
-  { id: 'classic-pathia', name: 'Chicken or Lamb Pathia', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 9.95, description: 'Sweet, sour and hot curry cooked with rich tomatoes and fresh lemon juice.', isAvailable: true, order: 8 },
-  { id: 'classic-danshak', name: 'Chicken or Lamb Danshak', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 10.95, description: 'Persian-style curry cooked with yellow lentils, lemon and pineapple in a sweet and sour sauce.', isAvailable: true, order: 9 },
-  { id: 'classic-sag', name: 'Chicken or Lamb Sag', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 10.95, description: 'Slow cooked tender pieces with fresh tempered garden spinach, garlic and fragrant spices.', isAvailable: true, order: 10 },
-  { id: 'classic-tikka-masala', name: 'Chicken or Lamb Tikka Masala', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 10.95, description: 'Charcoal grilled tikka pieces simmered in our famous velvety tomato, almond and rich butter sauce.', isAvailable: true, isFeatured: true, order: 11 },
-  { id: 'classic-passanda', name: 'Chicken or Lamb Passanda', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 10.95, description: 'Tender sliced meat marinated in yoghurt and mild spices, cooked in a fragrant creamy sauce with almonds.', isAvailable: true, order: 12 },
-  { id: 'classic-jalfrezi', name: 'Chicken or Lamb Jalfrezi', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 10.95, description: 'Fairly hot dish stir-fried with fresh green chillies, peppers, onions and fresh ground spices.', isAvailable: true, order: 13 },
-  { id: 'classic-tikka-danshak', name: 'Tikka Danshak (Chicken or Lamb)', categoryId: 'classic-dishes', categoryName: 'Classic Dishes', price: 11.95, description: 'Charcoal-grilled tikka slow simmered with lentils in a piquant sweet, sour and hot sauce.', isAvailable: true, order: 14 },
+  // Note: Classic Dishes are powered by INITIAL_CLASSIC_DISHES (multi-option pricing matrix & popup selector)
 
   // Special Balti Dishes
   { id: 'balti-chicken-lamb', name: 'Chicken or Lamb Balti', categoryId: 'balti', categoryName: 'Special Balti Dishes', price: 13.95, isAvailable: true, order: 1 },
@@ -194,6 +180,53 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   { id: 'sunday-special-deal', name: 'Rashoi Sunday Special', categoryId: 'sunday-special', categoryName: 'Rashoi Sunday Special', price: 15.95, description: 'Four Course Meal: A starter, a main dish, a side dish and Rice or Naan. King prawn starters add £1.95. King prawn main dishes add £3.95.', isFeatured: true, isAvailable: true, order: 1 },
 ];
 
+export const CLASSIC_DISH_DETAILS: Record<string, { description: string; isFeatured?: boolean }> = {
+  korma: {
+    description: 'A delicate preparation of yoghurt, cream and ground spices producing a rich, mild and creamy texture.',
+  },
+  kashmiri: {
+    description: 'A mild and fruity curry infused with bananas, lychees and a rich creamy sauce.',
+  },
+  madras: {
+    description: 'A richly spiced South Indian favourite with a fiery, hot and sour taste with fresh lemon.',
+  },
+  vindaloo: {
+    description: 'An extra hot, fiery curry with red chillies, vinegar, garlic and diced potatoes.',
+  },
+  'rogan-josh': {
+    description: 'Slow simmered in an aromatic spiced tomato, garlic, ginger and fresh coriander reduction.',
+    isFeatured: true,
+  },
+  bhuna: {
+    description: 'Thoroughly seasoned with finely chopped onions, capsicum, fresh coriander and thick spicy sauce.',
+  },
+  dupiaza: {
+    description: 'Medium spiced dish prepared with seasoned braised onions and briskly fried peppers.',
+  },
+  pathia: {
+    description: 'Sweet, sour and hot curry cooked with rich tomatoes and fresh lemon juice.',
+  },
+  danshak: {
+    description: 'Persian-style curry cooked with yellow lentils, lemon and pineapple in a sweet and sour sauce.',
+  },
+  sag: {
+    description: 'Slow cooked with fresh tempered garden spinach, garlic and fragrant spices.',
+  },
+  'tikka-masala': {
+    description: 'Charcoal-grilled tikka simmered in our famous velvety tomato, almond and rich butter sauce.',
+    isFeatured: true,
+  },
+  passanda: {
+    description: 'Marinated in yoghurt and mild spices, cooked in a fragrant creamy sauce with almonds.',
+  },
+  jalfrezi: {
+    description: 'Fairly hot dish stir-fried with fresh green chillies, peppers, onions and fresh ground spices.',
+  },
+  'tikka-danshak': {
+    description: 'Charcoal-grilled tikka slow simmered with lentils in a piquant sweet, sour and hot sauce.',
+  },
+};
+
 export const INITIAL_CLASSIC_DISHES: ClassicDishPricing[] = [
   { id: 'korma', dishName: 'Korma', chickenPrice: 9.95, lambPrice: 9.95, prawnPrice: 10.95, kingPrawnPrice: 11.95, vegPrice: 8.95, order: 1 },
   { id: 'kashmiri', dishName: 'Kashmiri', chickenPrice: 9.95, lambPrice: 9.95, prawnPrice: 10.95, kingPrawnPrice: 11.95, vegPrice: 8.95, order: 2 },
@@ -203,7 +236,7 @@ export const INITIAL_CLASSIC_DISHES: ClassicDishPricing[] = [
   { id: 'bhuna', dishName: 'Bhuna', chickenPrice: 9.95, lambPrice: 9.95, prawnPrice: 10.95, kingPrawnPrice: 11.95, vegPrice: 8.95, order: 6 },
   { id: 'dupiaza', dishName: 'Dupiaza', chickenPrice: 9.95, lambPrice: 9.95, prawnPrice: 10.95, kingPrawnPrice: 11.95, vegPrice: 8.95, order: 7 },
   { id: 'pathia', dishName: 'Pathia', chickenPrice: 9.95, lambPrice: 9.95, prawnPrice: 10.95, kingPrawnPrice: 11.95, vegPrice: 8.95, order: 8 },
-  { id: 'danshak', dishName: 'Danshak', chickenPrice: 10.95, lambPrice: 10.95, prawnPrice: 10.95, kingPrawnPrice: 12.95, vegPrice: 8.95, order: 9 },
+  { id: 'danshak', dishName: 'Danshak', chickenPrice: 10.95, lambPrice: 10.95, prawnPrice: 10.95, kingPrawnPrice: 13.95, vegPrice: 8.95, order: 9 },
   { id: 'sag', dishName: 'Sag', chickenPrice: 10.95, lambPrice: 10.95, prawnPrice: 10.95, kingPrawnPrice: 12.95, vegPrice: 8.95, order: 10 },
   { id: 'tikka-masala', dishName: 'Tikka Masala', chickenPrice: 10.95, lambPrice: 10.95, prawnPrice: 10.95, kingPrawnPrice: null, vegPrice: 8.95, order: 11 },
   { id: 'passanda', dishName: 'Passanda', chickenPrice: 10.95, lambPrice: 10.95, prawnPrice: 10.95, kingPrawnPrice: 12.95, vegPrice: 8.95, order: 12 },

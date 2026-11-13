@@ -182,7 +182,22 @@ export async function getClassicDishesPricing(): Promise<ClassicDishPricing[]> {
     const q = query(collection(db, CLASSIC_DISHES_COL), orderBy('order', 'asc'));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return INITIAL_CLASSIC_DISHES;
-    return snapshot.docs.map(doc => doc.data() as ClassicDishPricing);
+
+    const fetchedMap = new Map<string, ClassicDishPricing & { updatedAt?: string }>();
+    snapshot.docs.forEach((d) => {
+      const data = d.data() as ClassicDishPricing & { updatedAt?: string };
+      fetchedMap.set(data.id || d.id, data);
+    });
+
+    // Merge canonical pricing for untouched legacy seed docs (without updatedAt) while respecting admin edits
+    return INITIAL_CLASSIC_DISHES.map((canonical) => {
+      const existing = fetchedMap.get(canonical.id);
+      if (!existing) return canonical;
+      if (!existing.updatedAt) {
+        return canonical;
+      }
+      return existing;
+    });
   } catch (error) {
     try {
       handleFirestoreError(error, OperationType.LIST, CLASSIC_DISHES_COL);
@@ -194,7 +209,11 @@ export async function getClassicDishesPricing(): Promise<ClassicDishPricing[]> {
 
 export async function updateClassicDishPricing(pricing: ClassicDishPricing): Promise<void> {
   try {
-    await setDoc(doc(db, CLASSIC_DISHES_COL, pricing.id), pricing);
+    const payload = cleanFirestorePayload({
+      ...pricing,
+      updatedAt: new Date().toISOString(),
+    });
+    await setDoc(doc(db, CLASSIC_DISHES_COL, pricing.id), payload);
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${CLASSIC_DISHES_COL}/${pricing.id}`);
   }

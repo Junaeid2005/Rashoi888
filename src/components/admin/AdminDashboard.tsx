@@ -385,16 +385,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
         // Play 5-second loud alert chime for incoming orders
         playAdminAlertChime();
         const o = latestNewOrder as Order;
+        const itemsSummary = o.items
+          .map((i) => `${i.quantity}x ${i.name}${i.selectedProtein ? ` (${i.selectedProtein})` : ''}`)
+          .join(', ');
         setLiveAlert({
           id: o.orderId,
           type: 'order',
           title: `New Takeaway Order #${o.orderId}`,
-          subtitle: `${o.customerName} ordered ${o.items.length} items (Collection)`,
+          subtitle: `${o.customerName}: ${itemsSummary}`,
           amount: `£${o.totalAmount.toFixed(2)}`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         });
         sendDesktopNotification(`Rashoi: New Takeaway Order #${o.orderId}`, {
-          body: `${o.customerName} placed an order for £${o.totalAmount.toFixed(2)}.`,
+          body: `${o.customerName} ordered ${itemsSummary} (£${o.totalAmount.toFixed(2)}).`,
         });
       }
     }, (err) => {
@@ -960,7 +963,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-5 rounded-xl bg-[#1F181C] border border-[#262626]">
                 <p className="text-xs text-[#858078] uppercase">Total Dishes</p>
-                <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">{menuItems.length}</p>
+                <p className="font-serif text-3xl font-bold text-[#FFFFFF] mt-1">
+                  {menuItems.filter((i) => i.categoryId !== 'classic-dishes').length + classicDishes.length}
+                </p>
                 <p className="text-[10px] text-[#B8B1A7] mt-1">{categories.length} Active Categories</p>
               </div>
 
@@ -1005,17 +1010,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                 </div>
 
                 {orders.slice(0, 4).map((ord) => (
-                  <div key={ord.id} className="p-3 rounded bg-[#161114] flex justify-between items-center text-xs">
-                    <div>
+                  <div key={ord.id} className="p-3 rounded bg-[#161114] flex justify-between items-start gap-3 text-xs">
+                    <div className="min-w-0 flex-1">
                       <p className="font-mono font-bold text-[#FFFFFF]">{ord.orderId}</p>
                       <p className="text-[#858078]">{ord.customerName} • {ord.items.length} items</p>
+                      <p className="text-[11px] text-[#E2DDD7] mt-1 truncate">
+                        {ord.items
+                          .map((it) => `${it.quantity}x ${it.name}${it.selectedProtein ? ` (${it.selectedProtein})` : ''}`)
+                          .join(', ')}
+                      </p>
                       {ord.items.some((it) => it.selectedCondiments && it.selectedCondiments.length > 0) && (
                         <p className="text-[10px] text-amber-300 font-mono mt-0.5">
                           ↳ Chutneys: {ord.items.flatMap((it) => it.selectedCondiments || []).join(', ')}
                         </p>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p className="font-bold text-[#F5F1EA]">£{ord.totalAmount.toFixed(2)}</p>
                       <span className="text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 capitalize">
                         {ord.orderStatus}
@@ -1205,8 +1215,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                                   {it.name}
                                 </span>
                                 {it.selectedProtein && (
-                                  <span className="text-xs text-[#E23D5B] font-mono font-bold px-2 py-0.5 rounded bg-[#2D1A22] border border-[#800020]/40">
-                                    Protein: {it.selectedProtein}
+                                  <span className="text-xs text-[#FFFFFF] font-mono font-bold px-2.5 py-0.5 rounded bg-[#800020] border border-[#E23D5B] shadow-sm">
+                                    Option: {it.selectedProtein}
                                   </span>
                                 )}
                               </div>
@@ -1327,7 +1337,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#262626]">
-                  {menuItems.map((item) => (
+                  {menuItems.filter((item) => item.categoryId !== 'classic-dishes').map((item) => (
                     <tr key={item.id} className="hover:bg-[#292025]/50">
                       <td className="py-3 px-4">
                         <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#161114] border border-[#A51C30]/30 shrink-0 relative">

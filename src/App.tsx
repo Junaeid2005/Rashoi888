@@ -310,6 +310,11 @@ function MainApp() {
   const handleReturnToSite = () => {
     setAdminInitialTab(undefined);
     navigateToView('home');
+    getClassicDishesPricing()
+      .then((classics) => {
+        if (classics && classics.length > 0) setClassicDishes(classics);
+      })
+      .catch(() => {});
   };
 
   return (
@@ -408,6 +413,7 @@ function MainApp() {
           <MenuPage
             categories={categories}
             menuItems={menuItems}
+            classicDishes={classicDishes}
           />
         )}
 

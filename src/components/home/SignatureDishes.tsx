@@ -14,9 +14,10 @@ export const SignatureDishes: React.FC<SignatureDishesProps> = ({ dishes, onView
   const { addItem } = useCart();
   const { isAdmin } = useAuth();
 
-  // Pick signature featured dishes
-  const featured = dishes.filter((d) => d.isFeatured || d.isChefsSpecial).slice(0, 6);
-  const displayDishes = featured.length > 0 ? featured : dishes.slice(0, 6);
+  // Pick signature featured dishes (excluding classic-dishes which require protein selection)
+  const nonClassic = dishes.filter((d) => d.categoryId !== 'classic-dishes');
+  const featured = nonClassic.filter((d) => d.isFeatured || d.isChefsSpecial).slice(0, 6);
+  const displayDishes = featured.length > 0 ? featured : nonClassic.slice(0, 6);
 
   return (
     <section className="py-24 bg-[#120E10] relative">
