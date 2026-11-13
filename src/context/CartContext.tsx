@@ -80,14 +80,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         return next;
       } else {
-        return [
-          ...prevItems,
-          {
-            ...item,
-            id: 'cart-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-            quantity: qty,
-          },
-        ];
+        const newItem: CartItem = {
+          id: 'cart-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+          name: item.name,
+          price: item.price,
+          quantity: qty,
+          ...(item.menuItemId !== undefined ? { menuItemId: item.menuItemId } : {}),
+          ...(item.categoryName !== undefined ? { categoryName: item.categoryName } : {}),
+          ...(item.selectedProtein !== undefined ? { selectedProtein: item.selectedProtein } : {}),
+          ...(item.selectedCondiments !== undefined ? { selectedCondiments: item.selectedCondiments } : {}),
+          ...(item.notes !== undefined ? { notes: item.notes } : {}),
+        };
+        return [...prevItems, newItem];
       }
     });
 

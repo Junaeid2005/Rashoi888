@@ -56,18 +56,30 @@ const SETTINGS_COL = 'restaurantSettings';
  * Recursively sanitizes any payload destined for Firestore by stripping keys with undefined values.
  * Firestore strictly rejects undefined field values.
  */
-export function cleanFirestorePayload<T extends Record<string, any>>(data: T): T {
-  const cleaned: any = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (value !== undefined) {
-      if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-        cleaned[key] = cleanFirestorePayload(value);
-      } else {
-        cleaned[key] = value;
+export function cleanFirestorePayload<T>(data: T): T {
+  if (Array.isArray(data)) {
+    return data
+      .filter((item) => item !== undefined)
+      .map((item) =>
+        item !== null && typeof item === 'object' && !(item instanceof Date)
+          ? cleanFirestorePayload(item)
+          : item
+      ) as unknown as T;
+  }
+  if (data !== null && typeof data === 'object' && !(data instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+          cleaned[key] = cleanFirestorePayload(value);
+        } else {
+          cleaned[key] = value;
+        }
       }
     }
+    return cleaned as T;
   }
-  return cleaned as T;
+  return data;
 }
 
 // Initialize and Seed Default Data if not yet present

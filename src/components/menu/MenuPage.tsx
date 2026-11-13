@@ -304,13 +304,13 @@ export const MenuPage: React.FC<MenuPageProps> = ({
     menuItemId?: string
   ) => {
     addItem({
-      menuItemId,
       name,
       price,
       categoryName: category,
       quantity: qty,
-      selectedProtein,
-      selectedCondiments: condiments,
+      ...(menuItemId ? { menuItemId } : {}),
+      ...(selectedProtein ? { selectedProtein } : {}),
+      ...(condiments ? { selectedCondiments: condiments } : {}),
     });
     const proteinLabel = selectedProtein ? ` (${selectedProtein})` : '';
     const condLabel =
