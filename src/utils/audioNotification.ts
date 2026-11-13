@@ -1,14 +1,17 @@
 /**
  * Web Audio API & HTML5 Audio Hybrid Notification Engine.
  * Engineered for 100% reliable 5-second continuous restaurant alert chimes
- * across all modern desktop and mobile browsers, even under background tab or autoplay constraints.
+ * across all modern desktop and mobile browsers, with persistent gesture unlock
+ * and queued retry if autoplay is initially blocked after a page reload.
  */
 
 let audioCtx: AudioContext | null = null;
 let cachedWavBlobUrl: string | null = null;
 let cachedPcmSamples: Float32Array | null = null;
-let isAudioEngineUnlocked = false;
-let lastChimePlayTimestamp = 0;
+let activeHtmlAudio: HTMLAudioElement | null = null;
+let hasPendingBlockedChime = false;
+let lastChimeEventKey: string | null = null;
+let lastChimeEventTime = 0;
 
 const SAMPLE_RATE = 22050;
 const CHIME_DURATION = 5.2; // 5.2 seconds for full 5 resonant strikes
@@ -145,50 +148,103 @@ export function getAudioContext(): AudioContext | null {
       audioCtx = new AudioContextClass();
     }
   }
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
-  }
   return audioCtx;
 }
 
+export function isAudioEngineRunning(): boolean {
+  return Boolean(audioCtx && audioCtx.state === 'running');
+}
+
+function scheduleWebAudioBell(ctx: AudioContext, volume: number): void {
+  const pcm = generateBellPcmSamples();
+  const audioBuffer = ctx.createBuffer(1, pcm.length, SAMPLE_RATE);
+  audioBuffer.getChannelData(0).set(pcm);
+
+  const bufferSource = ctx.createBufferSource();
+  bufferSource.buffer = audioBuffer;
+
+  const compressor = ctx.createDynamicsCompressor();
+  compressor.threshold.setValueAtTime(-12, ctx.currentTime);
+  compressor.knee.setValueAtTime(8, ctx.currentTime);
+  compressor.ratio.setValueAtTime(10, ctx.currentTime);
+  compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+  compressor.release.setValueAtTime(0.2, ctx.currentTime);
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(1.4 * volume, ctx.currentTime);
+
+  bufferSource.connect(compressor);
+  compressor.connect(masterGain);
+  masterGain.connect(ctx.destination);
+
+  bufferSource.start(0);
+}
+
 /**
- * Proactively unlocks Web Audio on any user gesture across the window.
+ * Proactively unlocks Web Audio on any real user gesture across the window.
+ * If an alert chime was queued while autoplay was blocked, plays it right away.
  */
 export function unlockAudioContext(): void {
   try {
     const ctx = getAudioContext();
+    getWavBlobUrl();
     if (ctx) {
+      const finishUnlock = () => {
+        try {
+          const buf = ctx.createBuffer(1, 1, SAMPLE_RATE);
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(ctx.destination);
+          src.start(0);
+        } catch {
+          // ignore
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('rashoi-audio-unlocked'));
+        }
+        if (hasPendingBlockedChime) {
+          hasPendingBlockedChime = false;
+          playAdminAlertChime(undefined, `replay-${Date.now()}`);
+        }
+      };
+
       if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
+        ctx.resume().then(finishUnlock).catch(() => {});
+      } else {
+        finishUnlock();
       }
-      // Play a 1-sample silent buffer to satisfy strict Safari/Chrome autoplay policy
-      const buf = ctx.createBuffer(1, 1, SAMPLE_RATE);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-      src.start(0);
-      isAudioEngineUnlocked = true;
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
 
-// Global window event listener to unlock audio on the very first user interaction
+// Persistent gesture listeners so AudioContext always resumes after reload or background sleep
 if (typeof window !== 'undefined') {
-  const unlockEvents = ['click', 'pointerdown', 'touchstart', 'keydown', 'focus'];
+  const unlockEvents = ['click', 'pointerdown', 'touchstart', 'keydown'];
   const handleUserUnlock = () => {
-    unlockAudioContext();
-    getWavBlobUrl(); // Pre-warm the WAV URL in memory
+    if (!audioCtx || audioCtx.state !== 'running' || hasPendingBlockedChime) {
+      unlockAudioContext();
+    }
   };
   unlockEvents.forEach((evt) => {
-    window.addEventListener(evt, handleUserUnlock, { once: true, passive: true });
+    window.addEventListener(evt, handleUserUnlock, { passive: true });
   });
 }
 
 /**
- * Volume persistence (Default: 1.0 / 100% maximum volume for loud restaurant alerts)
+ * Sound & Volume persistence
  */
+export function isAdminSoundEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const saved = localStorage.getItem('rashoi_admin_sound');
+    return saved !== null ? saved === 'true' : true;
+  } catch {
+    return true;
+  }
+}
+
 export function getAdminAlertVolume(): number {
   if (typeof window === 'undefined') return 1.0;
   try {
@@ -211,81 +267,110 @@ export function setAdminAlertVolume(volume: number): void {
 
 /**
  * Play a high-visibility, 5-second continuous executive restaurant alert bell.
- * Uses a DUAL ENGINE (Web Audio API hardware buffer + HTML5 Audio element fallback)
- * guaranteeing the sound plays for the full 5.2 seconds at maximum volume.
+ * Uses a DUAL ENGINE (Web Audio API hardware buffer + retained HTML5 Audio element)
+ * with per-event deduplication (instead of blind time blocking) and autoplay-block recovery.
  */
-export function playAdminAlertChime(volumeOverride?: number): void {
-  const nowMs = Date.now();
-  // Prevent duplicate concurrent chimes within 1.2 seconds if multiple listeners react to the same event
-  if (nowMs - lastChimePlayTimestamp < 1200) {
+export function playAdminAlertChime(volumeOverride?: number, eventKey?: string, forceTest: boolean = false): void {
+  if (!forceTest && !isAdminSoundEnabled()) {
     return;
   }
-  lastChimePlayTimestamp = nowMs;
 
   const currentVolume = volumeOverride !== undefined ? volumeOverride : getAdminAlertVolume();
-  if (currentVolume <= 0.01) return; // Muted
+  if (currentVolume <= 0.01) return;
 
-  let webAudioStarted = false;
-
-  // 1. ENGINE A: Web Audio API with pre-synthesized 5.2s AudioBuffer & Dynamics Compressor
-  try {
-    const ctx = getAudioContext();
-    if (ctx) {
-      if (ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
-      }
-
-      const pcm = generateBellPcmSamples();
-      const audioBuffer = ctx.createBuffer(1, pcm.length, SAMPLE_RATE);
-      audioBuffer.getChannelData(0).set(pcm);
-
-      const bufferSource = ctx.createBufferSource();
-      bufferSource.buffer = audioBuffer;
-
-      // Dynamics Compressor: Acts as an audio maximizer/limiter for maximum loudness & clarity
-      const compressor = ctx.createDynamicsCompressor();
-      compressor.threshold.setValueAtTime(-12, ctx.currentTime);
-      compressor.knee.setValueAtTime(8, ctx.currentTime);
-      compressor.ratio.setValueAtTime(10, ctx.currentTime);
-      compressor.attack.setValueAtTime(0.003, ctx.currentTime);
-      compressor.release.setValueAtTime(0.20, ctx.currentTime);
-
-      // Master Gain: Boosted for maximum acoustic loudness
-      const masterGain = ctx.createGain();
-      // Up to 1.4x gain boost scaled with currentVolume
-      const targetGain = 1.4 * currentVolume;
-      masterGain.gain.setValueAtTime(targetGain, ctx.currentTime);
-
-      bufferSource.connect(compressor);
-      compressor.connect(masterGain);
-      masterGain.connect(ctx.destination);
-
-      bufferSource.start(0);
-      webAudioStarted = true;
-    }
-  } catch (err) {
-    console.warn('Web Audio playback error (will rely on HTML5 Audio):', err);
+  const nowMs = Date.now();
+  // Deduplicate identical event key triggered simultaneously by AdminGlobalNotifier & AdminDashboard
+  if (!forceTest && eventKey && eventKey === lastChimeEventKey && nowMs - lastChimeEventTime < 4000) {
+    return;
+  }
+  // Fallback rate-limit only when no eventKey is passed (prevent accidental echo within 700ms)
+  if (!forceTest && !eventKey && nowMs - lastChimeEventTime < 700) {
+    return;
   }
 
-  // 2. ENGINE B: HTML5 Audio Element Fallback
-  // Plays the synthesized 5.2s WAV file directly. If Web Audio was paused or blocked,
-  // HTML5 Audio ensures the 5-second chime is heard without fail!
+  lastChimeEventKey = eventKey || null;
+  lastChimeEventTime = nowMs;
+
+  // 1. ENGINE A: Web Audio API (when already unlocked and running)
+  try {
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'running') {
+      scheduleWebAudioBell(ctx, currentVolume);
+      hasPendingBlockedChime = false;
+      return;
+    }
+  } catch (err) {
+    console.warn('Web Audio playback note:', err);
+  }
+
+  // 2. ENGINE B: Retained HTML5 Audio Element (used when AudioContext is suspended/unavailable)
+  let fallbackTriggered = false;
   try {
     const wavUrl = getWavBlobUrl();
     if (wavUrl) {
+      if (activeHtmlAudio) {
+        try {
+          activeHtmlAudio.pause();
+          activeHtmlAudio.currentTime = 0;
+        } catch {
+          // ignore
+        }
+      }
       const audio = new Audio(wavUrl);
       audio.volume = Math.min(1.0, currentVolume);
-      
+      activeHtmlAudio = audio;
+      audio.onended = () => {
+        if (activeHtmlAudio === audio) activeHtmlAudio = null;
+      };
+
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          // If HTML5 audio was restricted, retry on next interaction
-          console.warn('HTML5 Audio autoplay note:', err);
-        });
+        fallbackTriggered = true;
+        playPromise
+          .then(() => {
+            hasPendingBlockedChime = false;
+          })
+          .catch((err) => {
+            console.warn('HTML5 Audio autoplay blocked until user interaction:', err);
+            const ctx = getAudioContext();
+            if (ctx && ctx.state === 'suspended') {
+              ctx
+                .resume()
+                .then(() => {
+                  if (ctx.state === 'running') {
+                    scheduleWebAudioBell(ctx, currentVolume);
+                    hasPendingBlockedChime = false;
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('rashoi-audio-unlocked'));
+                    }
+                    return;
+                  }
+                  throw new Error('AudioContext still suspended');
+                })
+                .catch(() => {
+                  hasPendingBlockedChime = true;
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('rashoi-audio-blocked'));
+                  }
+                });
+            } else {
+              hasPendingBlockedChime = true;
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('rashoi-audio-blocked'));
+              }
+            }
+          });
       }
     }
   } catch (e) {
     console.warn('HTML5 Audio playback exception:', e);
+  }
+
+  if (!fallbackTriggered) {
+    hasPendingBlockedChime = true;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('rashoi-audio-blocked'));
+    }
   }
 }
 
@@ -297,34 +382,38 @@ export function playUserSuccessChime(): void {
     const ctx = getAudioContext();
     if (!ctx) return;
 
+    const runNotes = () => {
+      const now = ctx.currentTime;
+      const notes = [
+        { freq: 523.25, time: 0.00, dur: 0.22 }, // C5
+        { freq: 659.25, time: 0.12, dur: 0.25 }, // E5
+        { freq: 783.99, time: 0.24, dur: 0.45 }, // G5
+      ];
+
+      notes.forEach(({ freq, time, dur }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + time);
+
+        gain.gain.setValueAtTime(0.001, now + time);
+        gain.gain.linearRampToValueAtTime(0.35, now + time + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now + time);
+        osc.stop(now + time + dur + 0.05);
+      });
+    };
+
     if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
+      ctx.resume().then(runNotes).catch(() => {});
+    } else {
+      runNotes();
     }
-
-    const now = ctx.currentTime;
-    const notes = [
-      { freq: 523.25, time: 0.00, dur: 0.22 }, // C5
-      { freq: 659.25, time: 0.12, dur: 0.25 }, // E5
-      { freq: 783.99, time: 0.24, dur: 0.45 }, // G5
-    ];
-
-    notes.forEach(({ freq, time, dur }) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + time);
-
-      gain.gain.setValueAtTime(0.001, now + time);
-      gain.gain.linearRampToValueAtTime(0.35, now + time + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + time + dur);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(now + time);
-      osc.stop(now + time + dur + 0.05);
-    });
   } catch (err) {
     console.warn('Audio notification unavailable:', err);
   }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
-import { playAdminAlertChime, sendDesktopNotification, getAdminAlertVolume, setAdminAlertVolume } from '../../utils/audioNotification';
+import { playAdminAlertChime, sendDesktopNotification, getAdminAlertVolume, setAdminAlertVolume, unlockAudioContext } from '../../utils/audioNotification';
 import { Order, Reservation } from '../../types';
 import {
   Bell,
@@ -85,27 +85,17 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
     } catch {}
   };
 
-  // Resume Web Audio context on any first click in window
-  useEffect(() => {
-    const handleFirstUserInteraction = () => {
-      try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-          const testCtx = new AudioContextClass();
-          if (testCtx.state === 'suspended') {
-            testCtx.resume();
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
+  const [audioBlocked, setAudioBlocked] = useState<boolean>(false);
 
-    window.addEventListener('click', handleFirstUserInteraction, { once: true });
-    window.addEventListener('keydown', handleFirstUserInteraction, { once: true });
+  // Sync audio unlock/blocked events so admin always knows if browser autoplay requires a tap
+  useEffect(() => {
+    const onBlocked = () => setAudioBlocked(true);
+    const onUnlocked = () => setAudioBlocked(false);
+    window.addEventListener('rashoi-audio-blocked', onBlocked);
+    window.addEventListener('rashoi-audio-unlocked', onUnlocked);
     return () => {
-      window.removeEventListener('click', handleFirstUserInteraction);
-      window.removeEventListener('keydown', handleFirstUserInteraction);
+      window.removeEventListener('rashoi-audio-blocked', onBlocked);
+      window.removeEventListener('rashoi-audio-unlocked', onUnlocked);
     };
   }, []);
 
@@ -139,18 +129,20 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
   };
 
   const toggleSound = () => {
+    unlockAudioContext();
     const next = !soundEnabled;
     setSoundEnabled(next);
     if (typeof window !== 'undefined') {
       localStorage.setItem('rashoi_admin_sound', String(next));
     }
     if (next) {
-      playAdminAlertChime();
+      playAdminAlertChime(undefined, undefined, true);
     }
   };
 
   const testChime = () => {
-    playAdminAlertChime();
+    unlockAudioContext();
+    playAdminAlertChime(undefined, undefined, true);
   };
 
   // Main real-time Firestore listeners for incoming Orders and Reservations
@@ -180,20 +172,18 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
         let hasNew = false;
         let latestOrder: Order | null = null;
 
-        snapshot.docs.forEach((docSnap) => {
-          const ord = docSnap.data() as Order;
-          const oid = ord.orderId || docSnap.id;
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== 'added') return;
+          const ord = change.doc.data() as Order;
+          const oid = ord.orderId || change.doc.id;
 
-          // Only consider orders that are truly new (not known before)
           if (!knownOrderIdsRef.current.has(oid) && !seenOrderStorage.has(oid)) {
-            // An order is only "new" if it was placed after the session started (not an old order)
-            const orderCreatedMs = ord.createdAt ? new Date(ord.createdAt).getTime() : 0;
-            const isFreshOrder = orderCreatedMs > (sessionMountTimeRef.current - 5000);
-
-            // Only notify if active/new, definitely not completed or cancelled
+            // Allow 30-minute tolerance for customer/admin device clock differences
+            const orderCreatedMs = ord.createdAt ? new Date(ord.createdAt).getTime() : Date.now();
+            const isRecentOrder = orderCreatedMs > (sessionMountTimeRef.current - 30 * 60 * 1000);
             const isActiveStatus = ord.orderStatus === 'accepted' || ord.orderStatus === 'new';
 
-            if (isFreshOrder && isActiveStatus) {
+            if (isRecentOrder && isActiveStatus) {
               hasNew = true;
               latestOrder = ord;
             }
@@ -205,8 +195,8 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
         if (hasNew && latestOrder) {
           const o = latestOrder as Order;
 
-          // Play alert chime for admin on incoming order
-          playAdminAlertChime();
+          // Play 5-second alert chime with per-order deduplication key
+          playAdminAlertChime(undefined, `order-${o.orderId}`);
 
           const itemsSummary = o.items
             .map((i) => `${i.quantity}x ${i.name}${i.selectedProtein ? ` (${i.selectedProtein})` : ''}`)
@@ -229,11 +219,11 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           });
 
-          // Auto-dismiss after 25 seconds
+          // Auto-dismiss after 45 seconds
           if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
           autoDismissTimerRef.current = setTimeout(() => {
             setActiveAlert(null);
-          }, 25000);
+          }, 45000);
         }
       },
       (err) => {
@@ -261,17 +251,18 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
         let hasNew = false;
         let latestRes: Reservation | null = null;
 
-        snapshot.docs.forEach((docSnap) => {
-          const res = docSnap.data() as Reservation;
-          const rid = res.id || docSnap.id;
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== 'added') return;
+          const res = change.doc.data() as Reservation;
+          const rid = res.id || change.doc.id;
 
           if (!knownReservationIdsRef.current.has(rid) && !seenReservationStorage.has(rid)) {
-            // Check if created after session mount
-            const resCreatedMs = res.createdAt ? new Date(res.createdAt).getTime() : 0;
-            const isFreshBooking = resCreatedMs > (sessionMountTimeRef.current - 5000);
+            // Allow 30-minute tolerance for customer/admin device clock differences
+            const resCreatedMs = res.createdAt ? new Date(res.createdAt).getTime() : Date.now();
+            const isRecentBooking = resCreatedMs > (sessionMountTimeRef.current - 30 * 60 * 1000);
+            const isActiveBooking = res.status === 'pending' || res.status === 'confirmed';
 
-            // Only notify if pending booking request
-            if (isFreshBooking && res.status === 'pending') {
+            if (isRecentBooking && isActiveBooking) {
               hasNew = true;
               latestRes = res;
             }
@@ -283,8 +274,8 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
         if (hasNew && latestRes) {
           const r = latestRes as Reservation;
 
-          // Play alert chime for admin on incoming reservation
-          playAdminAlertChime();
+          // Play 5-second alert chime with per-reservation deduplication key
+          playAdminAlertChime(undefined, `res-${r.id}`);
 
           sendDesktopNotification(`Rashoi: Table Booking from ${r.customerName}`, {
             body: `${r.guests} guests on ${r.date} at ${r.time}.`,
@@ -300,11 +291,11 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           });
 
-          // Auto-dismiss after 25 seconds
+          // Auto-dismiss after 45 seconds
           if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
           autoDismissTimerRef.current = setTimeout(() => {
             setActiveAlert(null);
-          }, 25000);
+          }, 45000);
         }
       },
       (err) => {
@@ -371,11 +362,15 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
                 <button
                   type="button"
                   onClick={testChime}
-                  className="px-2.5 py-1 rounded-lg bg-[#140D10] border border-[#A51C30]/50 text-[11px] text-[#F5B8C3] hover:text-white flex items-center space-x-1 cursor-pointer transition-colors"
+                  className={`px-2.5 py-1 rounded-lg border text-[11px] flex items-center space-x-1 cursor-pointer transition-colors ${
+                    audioBlocked
+                      ? 'bg-amber-950 border-amber-400 text-amber-200 font-bold animate-pulse'
+                      : 'bg-[#140D10] border-[#A51C30]/50 text-[#F5B8C3] hover:text-white'
+                  }`}
                   title="Test chime"
                 >
                   <Bell className="w-3 h-3 text-[#E23D5B]" />
-                  <span>Test Bell (5s)</span>
+                  <span>{audioBlocked ? 'Tap to Ring Bell!' : 'Test Bell (5s)'}</span>
                 </button>
               </div>
 
@@ -448,6 +443,18 @@ export const AdminGlobalNotifier: React.FC<AdminGlobalNotifierProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Blocked autoplay warning / tap-to-unlock prompt */}
+              {audioBlocked && (
+                <button
+                  type="button"
+                  onClick={testChime}
+                  className="px-2.5 py-1 rounded-full bg-amber-950 border border-amber-400 text-[10px] font-bold text-amber-200 animate-pulse cursor-pointer transition-colors"
+                  title="Browser blocked sound until tap. Click to ring alert bell."
+                >
+                  Tap to Ring Bell!
+                </button>
+              )}
 
               {/* Desktop notification prompt if not yet granted */}
               {!hasRequestedPermission && (

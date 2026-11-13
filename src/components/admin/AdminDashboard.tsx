@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { playAdminAlertChime, sendDesktopNotification, getAdminAlertVolume, setAdminAlertVolume } from '../../utils/audioNotification';
+import { playAdminAlertChime, sendDesktopNotification, getAdminAlertVolume, setAdminAlertVolume, unlockAudioContext, isAudioEngineRunning } from '../../utils/audioNotification';
 import { useAuth } from '../../context/AuthContext';
 import {
   getCategories,
@@ -258,14 +258,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
     } catch {}
   };
 
+  const [audioReady, setAudioReady] = useState<boolean>(() => isAudioEngineRunning());
+
+  useEffect(() => {
+    const syncAudioState = () => setAudioReady(isAudioEngineRunning());
+    const onBlocked = () => setAudioReady(false);
+    window.addEventListener('rashoi-audio-unlocked', syncAudioState);
+    window.addEventListener('rashoi-audio-blocked', onBlocked);
+    return () => {
+      window.removeEventListener('rashoi-audio-unlocked', syncAudioState);
+      window.removeEventListener('rashoi-audio-blocked', onBlocked);
+    };
+  }, []);
+
   const toggleSound = () => {
+    unlockAudioContext();
     const next = !soundEnabled;
     setSoundEnabled(next);
     if (typeof window !== 'undefined') {
       localStorage.setItem('rashoi_admin_sound', String(next));
     }
     if (next) {
-      playAdminAlertChime();
+      playAdminAlertChime(undefined, undefined, true);
+      setAudioReady(true);
       triggerToast('Audio alerts enabled 🔔 (5-second chime)');
     } else {
       triggerToast('Audio alerts muted 🔕');
@@ -273,7 +288,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
   };
 
   const handleTestSound = () => {
-    playAdminAlertChime();
+    unlockAudioContext();
+    playAdminAlertChime(undefined, undefined, true);
+    setAudioReady(true);
     triggerToast(`Playing 5-second test bell at ${Math.round(volume * 100)}% volume 🔔`);
   };
 
@@ -361,16 +378,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
         updatedOrders.push(ord);
         const oid = ord.orderId || docSnap.id;
 
-        // Only consider orders that are truly new (not known before)
         if (!knownOrderIdsRef.current.has(oid) && !seenOrderStorage.has(oid)) {
-          // An order is only "new" if it was placed after this session started (not an old order)
-          const orderCreatedMs = ord.createdAt ? new Date(ord.createdAt).getTime() : 0;
-          const isFreshOrder = orderCreatedMs > (sessionMountTimeRef.current - 5000);
-
-          // Only notify if active/new, definitely not completed or cancelled
+          const orderCreatedMs = ord.createdAt ? new Date(ord.createdAt).getTime() : Date.now();
+          const isRecentOrder = orderCreatedMs > (sessionMountTimeRef.current - 30 * 60 * 1000);
           const isActiveStatus = ord.orderStatus === 'accepted' || ord.orderStatus === 'new';
 
-          if (isFreshOrder && isActiveStatus) {
+          if (isRecentOrder && isActiveStatus) {
             hasNewOrder = true;
             latestNewOrder = ord;
           }
@@ -382,9 +395,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
       setOrders(updatedOrders);
 
       if (hasNewOrder && latestNewOrder) {
-        // Play 5-second loud alert chime for incoming orders
-        playAdminAlertChime();
         const o = latestNewOrder as Order;
+        // Play 5-second loud alert chime with per-order deduplication key
+        playAdminAlertChime(undefined, `order-${o.orderId}`);
         const itemsSummary = o.items
           .map((i) => `${i.quantity}x ${i.name}${i.selectedProtein ? ` (${i.selectedProtein})` : ''}`)
           .join(', ');
@@ -432,12 +445,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
         const rid = res.id || docSnap.id;
 
         if (!knownReservationIdsRef.current.has(rid) && !seenReservationStorage.has(rid)) {
-          // Check if created after session mount
-          const resCreatedMs = res.createdAt ? new Date(res.createdAt).getTime() : 0;
-          const isFreshBooking = resCreatedMs > (sessionMountTimeRef.current - 5000);
+          const resCreatedMs = res.createdAt ? new Date(res.createdAt).getTime() : Date.now();
+          const isRecentBooking = resCreatedMs > (sessionMountTimeRef.current - 30 * 60 * 1000);
+          const isActiveBooking = res.status === 'pending' || res.status === 'confirmed';
 
-          // Only notify if pending booking request
-          if (isFreshBooking && res.status === 'pending') {
+          if (isRecentBooking && isActiveBooking) {
             hasNewReservation = true;
             latestReservation = res;
           }
@@ -449,9 +461,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
       setReservations(updatedReservations);
 
       if (hasNewReservation && latestReservation) {
-        // Play 5-second loud alert chime for incoming reservations
-        playAdminAlertChime();
         const r = latestReservation as Reservation;
+        // Play 5-second loud alert chime with per-reservation deduplication key
+        playAdminAlertChime(undefined, `res-${r.id}`);
         setLiveAlert({
           id: r.id,
           type: 'reservation',
@@ -887,16 +899,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
               </span>
             </div>
 
-            {/* Test Sound */}
+            {/* Test Sound / Arm Browser Bell */}
             <button
               onClick={handleTestSound}
               type="button"
-              className="px-3 py-1.5 rounded-xl border border-[#A51C30]/40 bg-[#1F181C] hover:bg-[#291F24] text-[#E2DDD7] text-xs font-medium flex items-center space-x-1.5 cursor-pointer transition-colors"
-              title="Test the 5-second executive alert chime at current volume"
+              className={`px-3 py-1.5 rounded-xl border text-xs font-medium flex items-center space-x-1.5 cursor-pointer transition-colors ${
+                soundEnabled && !audioReady
+                  ? 'border-amber-400/70 bg-amber-950/70 hover:bg-amber-900/80 text-amber-200 animate-pulse'
+                  : 'border-[#A51C30]/40 bg-[#1F181C] hover:bg-[#291F24] text-[#E2DDD7]'
+              }`}
+              title="Test the 5-second executive alert chime and arm browser audio"
             >
               <Bell className="w-3.5 h-3.5 text-[#E23D5B]" />
-              <span className="hidden sm:inline">Test Bell (5s)</span>
-              <span className="sm:hidden">Test</span>
+              <span className="hidden sm:inline">
+                {soundEnabled && !audioReady ? 'Arm & Test Bell' : 'Test Bell (5s)'}
+              </span>
+              <span className="sm:hidden">{soundEnabled && !audioReady ? 'Arm Bell' : 'Test'}</span>
             </button>
           </div>
         </div>
