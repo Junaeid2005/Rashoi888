@@ -81,7 +81,6 @@ import {
   ArrowLeft,
   Mail,
   Upload,
-  Printer,
 } from 'lucide-react';
 import { getDishVisualMeta } from '../../utils/menuImageResolver';
 import { resolveAssetUrl } from '../../utils/imagePath';
@@ -1166,17 +1165,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
                             REFUNDED
                           </span>
                         )}
-
-                        {/* Print Kitchen Slip Button */}
-                        <button
-                          type="button"
-                          onClick={() => window.print()}
-                          className="px-2.5 py-1 rounded bg-[#1A1418] hover:bg-[#2A1F24] text-[#D4CDC5] hover:text-white border border-[#3A2A30] text-xs font-semibold flex items-center space-x-1.5 transition-all cursor-pointer shadow-sm"
-                          title={`Print Kitchen Slip for Order #${order.orderId}`}
-                        >
-                          <Printer className="w-3.5 h-3.5 text-[#E23D5B]" />
-                          <span>Print Slip</span>
-                        </button>
 
                         {/* Individual Delete Order Button */}
                         <button
