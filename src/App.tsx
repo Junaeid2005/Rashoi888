@@ -11,7 +11,6 @@ import { Navbar } from './components/layout/Navbar';
 import { Hero } from './components/home/Hero';
 import { SignatureDishes } from './components/home/SignatureDishes';
 import { ExperienceSection } from './components/home/ExperienceSection';
-import { SpecialMenuFeature } from './components/home/SpecialMenuFeature';
 import { CustomerReviews } from './components/home/CustomerReviews';
 import { ReservationSection } from './components/home/ReservationSection';
 import { LocationSection } from './components/home/LocationSection';
@@ -390,11 +389,6 @@ function MainApp() {
               onGoToAdmin={() => navigateToView('admin')}
             />
             <ExperienceSection />
-            <SpecialMenuFeature
-              settings={homepageSettings}
-              onBookTable={handleOpenBooking}
-              onViewMenu={() => navigateToView('menu')}
-            />
             <CustomerReviews reviews={reviews} />
             <LocationSection info={restaurantInfo} />
           </>

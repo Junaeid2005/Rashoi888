@@ -24,7 +24,6 @@ export const INITIAL_CATEGORIES: MenuCategory[] = [
   { id: 'sundries', name: 'Sundries', description: 'Artisanal clay oven tandoori breads, papadums and accompaniments', order: 12, isVisible: true },
   { id: 'meat-thali', name: 'Meat Thali', description: 'Complete culinary tasting platter for one person', order: 13, isVisible: true },
   { id: 'vegetable-thali', name: 'Vegetable Thali', description: 'Traditional vegetarian banquet on a thali platter', order: 14, isVisible: true },
-  { id: 'sunday-special', name: 'Rashoi Sunday Special', description: 'Four-course feast served every Sunday', order: 15, isVisible: true },
 ];
 
 export const INITIAL_MENU_ITEMS: MenuItem[] = [
@@ -175,9 +174,6 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
 
   // Vegetable Thali
   { id: 'thali-vegetable', name: 'Vegetable Thali', categoryId: 'vegetable-thali', categoryName: 'Vegetable Thali', price: 13.95, description: 'Saag Bhajee, Aloo Bhajee, Bhindi Bhajee, Daal and Onion Bhajee. Served with Pilau Rice and Plain Naan.', isVegetarian: true, isFeatured: true, isAvailable: true, order: 1 },
-
-  // Rashoi Sunday Special
-  { id: 'sunday-special-deal', name: 'Rashoi Sunday Special', categoryId: 'sunday-special', categoryName: 'Rashoi Sunday Special', price: 15.95, description: 'Four Course Meal: A starter, a main dish, a side dish and Rice or Naan. King prawn starters add £1.95. King prawn main dishes add £3.95.', isFeatured: true, isAvailable: true, order: 1 },
 ];
 
 export const CLASSIC_DISH_DETAILS: Record<string, { description: string; isFeatured?: boolean }> = {
@@ -316,7 +312,7 @@ export const INITIAL_REVIEWS: Review[] = [
     id: 'rev-3',
     customerName: 'Elena Rostova',
     rating: 5,
-    reviewText: 'The Sunday Special is unbeatable value for such high gourmet standards. Delicious freshly made peshwari naan and garlic chicken. A true culinary gem.',
+    reviewText: 'The Meat Thali is unbeatable value for such high gourmet standards. Delicious freshly made peshwari naan and garlic chicken. A true culinary gem.',
     date: 'September 2026',
     isPublished: true,
     isFeatured: true,

@@ -130,7 +130,9 @@ export async function getCategories(): Promise<MenuCategory[]> {
     const q = query(collection(db, CATEGORIES_COL), orderBy('order', 'asc'));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return INITIAL_CATEGORIES;
-    return snapshot.docs.map(doc => doc.data() as MenuCategory);
+    return snapshot.docs
+      .map(doc => doc.data() as MenuCategory)
+      .filter(cat => cat.id !== 'sunday-special');
   } catch (error) {
     try {
       handleFirestoreError(error, OperationType.LIST, CATEGORIES_COL);
@@ -162,7 +164,9 @@ export async function getMenuItems(): Promise<MenuItem[]> {
     const q = query(collection(db, MENU_ITEMS_COL), orderBy('order', 'asc'));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return INITIAL_MENU_ITEMS;
-    return snapshot.docs.map(doc => doc.data() as MenuItem);
+    return snapshot.docs
+      .map(doc => doc.data() as MenuItem)
+      .filter(item => item.id !== 'sunday-special-deal' && item.categoryId !== 'sunday-special');
   } catch (error) {
     try {
       handleFirestoreError(error, OperationType.LIST, MENU_ITEMS_COL);
