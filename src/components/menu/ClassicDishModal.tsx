@@ -9,12 +9,18 @@ export interface ClassicDishModalInfo {
   visualMeta: DishVisualMeta;
 }
 
+export interface ClassicDishSelection {
+  option: string;
+  price: number;
+  quantity: number;
+}
+
 interface ClassicDishModalProps {
   isOpen: boolean;
   dish: ClassicDishModalInfo | null;
   isAdmin?: boolean;
   onClose: () => void;
-  onConfirm: (quantity: number, selectedOption: string, price: number) => void;
+  onConfirm: (selections: ClassicDishSelection[]) => void;
 }
 
 interface ClassicOptionRow {
@@ -30,14 +36,13 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
+  // Maps option key ('chicken', 'lamb', etc.) -> selected quantity (>= 1 when selected)
+  const [optionQuantities, setOptionQuantities] = useState<Record<string, number>>({});
 
   // Always start with NO pre-selected option when opening a dish
   useEffect(() => {
     if (isOpen && dish) {
-      setSelectedOption(null);
-      setQuantity(1);
+      setOptionQuantities({});
     }
   }, [isOpen, dish?.pricing.id]);
 
@@ -53,15 +58,57 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
     { key: 'veg', label: 'Vegetable', price: pricing.vegPrice },
   ];
 
-  const activeOptionObj = options.find(
-    (opt) => opt.label === selectedOption && opt.price !== null
+  const availablePrices = options
+    .map((o) => o.price)
+    .filter((p): p is number => p !== null);
+  const minPrice = availablePrices.length > 0 ? Math.min(...availablePrices) : 0;
+  const maxPrice = availablePrices.length > 0 ? Math.max(...availablePrices) : 0;
+  const priceRangeText =
+    minPrice === maxPrice
+      ? `£${minPrice.toFixed(2)}`
+      : `£${minPrice.toFixed(2)} – £${maxPrice.toFixed(2)}`;
+
+  const toggleOption = (opt: ClassicOptionRow) => {
+    if (opt.price === null) return;
+    setOptionQuantities((prev) => {
+      if ((prev[opt.key] || 0) > 0) {
+        const next = { ...prev };
+        delete next[opt.key];
+        return next;
+      }
+      return { ...prev, [opt.key]: 1 };
+    });
+  };
+
+  const adjustOptionQty = (optKey: string, delta: number) => {
+    setOptionQuantities((prev) => {
+      const nextQty = (prev[optKey] || 0) + delta;
+      if (nextQty <= 0) {
+        const next = { ...prev };
+        delete next[optKey];
+        return next;
+      }
+      return { ...prev, [optKey]: nextQty };
+    });
+  };
+
+  const activeSelections: ClassicDishSelection[] = options
+    .filter((opt) => opt.price !== null && (optionQuantities[opt.key] || 0) > 0)
+    .map((opt) => ({
+      option: opt.label,
+      price: opt.price as number,
+      quantity: optionQuantities[opt.key],
+    }));
+
+  const totalSelectedItems = activeSelections.reduce((sum, s) => sum + s.quantity, 0);
+  const totalSelectedPrice = activeSelections.reduce(
+    (sum, s) => sum + s.price * s.quantity,
+    0
   );
-  const selectedPrice = activeOptionObj?.price ?? null;
-  const totalPrice = selectedPrice !== null ? selectedPrice * quantity : null;
 
   const handleConfirm = () => {
-    if (!activeOptionObj || selectedPrice === null) return;
-    onConfirm(quantity, activeOptionObj.label, selectedPrice);
+    if (activeSelections.length === 0) return;
+    onConfirm(activeSelections);
   };
 
   return (
@@ -100,16 +147,16 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
                 {pricing.dishName}
               </h3>
             </div>
-            {selectedPrice !== null && (
-              <div className="text-right shrink-0">
-                <span className="text-[10px] uppercase tracking-wider text-[#F5B8C3] block font-mono">
-                  {activeOptionObj?.label}
-                </span>
-                <span className="font-serif text-xl sm:text-2xl font-bold text-white">
-                  £{selectedPrice.toFixed(2)}
-                </span>
-              </div>
-            )}
+            <div className="text-right shrink-0">
+              <span className="text-[10px] uppercase tracking-wider text-[#F5B8C3] block font-mono">
+                {totalSelectedItems > 0
+                  ? `${totalSelectedItems} item${totalSelectedItems > 1 ? 's' : ''} selected`
+                  : 'Price Range'}
+              </span>
+              <span className="font-serif text-xl sm:text-2xl font-bold text-white">
+                {totalSelectedItems > 0 ? `£${totalSelectedPrice.toFixed(2)}` : priceRangeText}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -119,30 +166,36 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
             {description}
           </p>
 
-          {/* Option Selection Section */}
+          {/* Multi-Option Selection Section */}
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-xs uppercase tracking-wider text-[#F5B8C3] font-semibold">
-                Select Your Choice *
+                Select Options *
               </span>
               <span className="text-[11px] text-[#A59E98]">
-                Choose one option
+                Select 1 or more • adjust qty
               </span>
             </div>
 
             <div className="space-y-2">
               {options.map((option) => {
                 const isAvailable = option.price !== null;
-                const isSelected = selectedOption === option.label && isAvailable;
+                const qty = optionQuantities[option.key] || 0;
+                const isSelected = isAvailable && qty > 0;
 
                 return (
-                  <button
+                  <div
                     key={option.key}
-                    type="button"
-                    disabled={!isAvailable}
+                    role={isAvailable ? 'button' : undefined}
+                    tabIndex={isAvailable ? 0 : -1}
+                    aria-disabled={!isAvailable}
                     onClick={() => {
-                      if (isAvailable) {
-                        setSelectedOption(option.label);
+                      if (isAvailable) toggleOption(option);
+                    }}
+                    onKeyDown={(e) => {
+                      if (isAvailable && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        toggleOption(option);
                       }
                     }}
                     className={`w-full p-3 sm:p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 text-left ${
@@ -154,9 +207,9 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
                     }`}
                   >
                     <div className="flex items-center space-x-3">
-                      {/* Radio Indicator */}
+                      {/* Multi-Select Checkbox Indicator */}
                       <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all shrink-0 ${
+                        className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all shrink-0 ${
                           !isAvailable
                             ? 'bg-[#140F12] border-[#2D2228]'
                             : isSelected
@@ -164,34 +217,68 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
                             : 'bg-[#140F12] border-[#4A3840] text-transparent'
                         }`}
                       >
-                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                       </div>
 
-                      <span
-                        className={`font-semibold text-sm ${
-                          !isAvailable
-                            ? 'text-[#7A7276] line-through'
-                            : 'text-white'
-                        }`}
-                      >
-                        {option.label}
-                      </span>
+                      <div>
+                        <span
+                          className={`font-semibold text-sm block ${
+                            !isAvailable
+                              ? 'text-[#7A7276] line-through'
+                              : 'text-white'
+                          }`}
+                        >
+                          {option.label}
+                        </span>
+                        {isAvailable && option.price !== null && (
+                          <span className="text-[11px] font-mono text-[#A59E98]">
+                            £{option.price.toFixed(2)} each
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    {isAvailable && option.price !== null ? (
-                      <span
-                        className={`font-mono text-sm font-bold ${
-                          isSelected ? 'text-[#F5B8C3]' : 'text-[#E2DDD7]'
-                        }`}
-                      >
-                        £{option.price.toFixed(2)}
-                      </span>
-                    ) : (
+                    {!isAvailable ? (
                       <span className="text-[11px] font-mono uppercase tracking-wider text-[#7A7276] italic">
                         Not Available
                       </span>
+                    ) : isSelected && option.price !== null ? (
+                      <div
+                        className="flex items-center space-x-2.5 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center space-x-1.5 bg-[#140F12] rounded-lg px-2 py-1 border border-[#E23D5B]/50">
+                          <button
+                            type="button"
+                            onClick={() => adjustOptionQty(option.key, -1)}
+                            className="p-0.5 text-[#ABA29B] hover:text-white rounded hover:bg-white/10 transition-colors cursor-pointer"
+                            aria-label={`Decrease ${option.label} quantity`}
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="font-mono font-bold text-xs min-w-5 text-center text-white">
+                            {qty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => adjustOptionQty(option.key, 1)}
+                            className="p-0.5 text-[#ABA29B] hover:text-white rounded hover:bg-white/10 transition-colors cursor-pointer"
+                            aria-label={`Increase ${option.label} quantity`}
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <span className="font-mono text-sm font-bold text-[#F5B8C3] min-w-[56px] text-right">
+                          £{(option.price * qty).toFixed(2)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-mono text-sm font-bold text-[#E2DDD7]">
+                        £{option.price?.toFixed(2)}
+                      </span>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -206,7 +293,7 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
           </div>
         </div>
 
-        {/* Sticky Footer: Stepper & Add to Order */}
+        {/* Sticky Footer: Selection Summary & Add to Order */}
         <div className="p-4 sm:p-5 border-t border-[#2D2228] bg-[#140E12] space-y-2.5 shrink-0">
           {isAdmin ? (
             <div className="w-full py-3 px-4 rounded-xl border border-[#A51C30]/40 bg-[#1A1418] text-center text-xs text-[#E2DDD7]">
@@ -214,56 +301,36 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
             </div>
           ) : (
             <>
-              {!activeOptionObj && (
+              {activeSelections.length === 0 ? (
                 <div className="flex items-center justify-center space-x-1.5 text-[11px] text-amber-300/90">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Please select Chicken, Lamb, Prawn, King Prawn, or Vegetable above.</span>
+                  <span>Select one or more options above, then choose your quantities.</span>
+                </div>
+              ) : (
+                <div className="text-[11px] text-[#F5B8C3] text-center font-mono">
+                  {activeSelections
+                    .map((s) => `${s.quantity}x ${s.option} (£${(s.price * s.quantity).toFixed(2)})`)
+                    .join(' • ')}
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-3 sm:gap-4">
-                {/* Quantity Controls */}
-                <div className="flex items-center space-x-2.5 bg-[#1F181C] rounded-xl px-3 py-2 border border-[#3A2A30]">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-1 text-[#ABA29B] hover:text-white rounded hover:bg-white/10 transition-colors cursor-pointer"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="font-mono font-bold text-sm min-w-6 text-center text-white">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="p-1 text-[#ABA29B] hover:text-white rounded hover:bg-white/10 transition-colors cursor-pointer"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Add to Order Button */}
-                <button
-                  type="button"
-                  disabled={!activeOptionObj || totalPrice === null}
-                  onClick={handleConfirm}
-                  className={`flex-1 py-3 px-4 sm:px-5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
-                    activeOptionObj && totalPrice !== null
-                      ? 'cursor-pointer shadow-xl bg-gradient-to-r from-[#800020] to-[#A51C30] hover:from-[#9B1130] hover:to-[#B3243C] text-white border border-[#E23D5B]/40 active:scale-[0.98]'
-                      : 'cursor-not-allowed bg-[#241A1F] text-[#7A7276] border border-[#3A2A30]'
-                  }`}
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>
-                    {activeOptionObj && totalPrice !== null
-                      ? `Add to Order • £${totalPrice.toFixed(2)}`
-                      : 'Select an Option'}
-                  </span>
-                </button>
-              </div>
+              <button
+                type="button"
+                disabled={activeSelections.length === 0}
+                onClick={handleConfirm}
+                className={`w-full py-3 px-4 sm:px-5 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center justify-center space-x-2 ${
+                  activeSelections.length > 0
+                    ? 'cursor-pointer shadow-xl bg-gradient-to-r from-[#800020] to-[#A51C30] hover:from-[#9B1130] hover:to-[#B3243C] text-white border border-[#E23D5B]/40 active:scale-[0.98]'
+                    : 'cursor-not-allowed bg-[#241A1F] text-[#7A7276] border border-[#3A2A30]'
+                }`}
+              >
+                <Plus className="w-4 h-4" />
+                <span>
+                  {activeSelections.length > 0
+                    ? `Add ${totalSelectedItems > 1 ? `${totalSelectedItems} Items ` : ''}to Order • £${totalSelectedPrice.toFixed(2)}`
+                    : 'Select Option(s)'}
+                </span>
+              </button>
             </>
           )}
         </div>

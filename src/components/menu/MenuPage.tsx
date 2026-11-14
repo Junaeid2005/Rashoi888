@@ -327,6 +327,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
         name: dish.name,
         price: dish.price,
         categoryName: dish.categoryName,
+        menuItemId: dish.id,
         initialQty: qty,
       });
       return;
@@ -575,7 +576,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
                           <span className="px-3 py-1.5 rounded-full bg-white text-black text-xs font-semibold uppercase tracking-wider flex items-center space-x-1 shadow-md">
                             <Eye className="w-3.5 h-3.5" />
-                            <span>Select Option</span>
+                            <span>Select Options</span>
                           </span>
                         </div>
                       </div>
@@ -881,6 +882,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                             name: item.name,
                             price: item.price,
                             categoryName: item.categoryName,
+                            menuItemId: item.id,
                             initialQty: qty,
                           });
                           return;
@@ -925,17 +927,23 @@ export const MenuPage: React.FC<MenuPageProps> = ({
         dish={classicModalDish}
         isAdmin={isAdmin}
         onClose={closeClassicModal}
-        onConfirm={(qty, selectedOption, selectedPrice) => {
-          if (classicModalDish) {
-            handleAddDish(
-              classicModalDish.pricing.dishName,
-              selectedPrice,
-              'Classic Dishes',
-              qty,
-              undefined,
-              selectedOption,
-              `classic-${classicModalDish.pricing.id}`
-            );
+        onConfirm={(selections) => {
+          if (classicModalDish && selections.length > 0) {
+            selections.forEach((sel) => {
+              addItem({
+                name: classicModalDish.pricing.dishName,
+                price: sel.price,
+                categoryName: 'Classic Dishes',
+                quantity: sel.quantity,
+                menuItemId: `classic-${classicModalDish.pricing.id}`,
+                selectedProtein: sel.option,
+              });
+            });
+            const summary = selections
+              .map((s) => `${s.quantity}x ${classicModalDish.pricing.dishName} (${s.option})`)
+              .join(', ');
+            setAddedNotice(`Added ${summary} to order`);
+            setTimeout(() => setAddedNotice(null), 3500);
           }
           closeClassicModal();
         }}
@@ -946,15 +954,33 @@ export const MenuPage: React.FC<MenuPageProps> = ({
         isOpen={!!papadamModalDish}
         dish={papadamModalDish}
         onClose={closePapadamModal}
-        onConfirm={(qty, selectedCondiments) => {
+        onConfirm={(qty, selectedChutneys) => {
           if (papadamModalDish) {
-            handleAddDish(
-              papadamModalDish.name,
-              papadamModalDish.price,
-              papadamModalDish.categoryName || 'Sundries',
-              qty,
-              selectedCondiments
-            );
+            const hasChutneys = selectedChutneys.length > 0;
+            addItem({
+              name: papadamModalDish.name,
+              price: papadamModalDish.price,
+              categoryName: papadamModalDish.categoryName || 'Sundries',
+              quantity: qty,
+              ...(papadamModalDish.menuItemId ? { menuItemId: papadamModalDish.menuItemId } : {}),
+              ...(!hasChutneys ? { selectedCondiments: ['None (Plain Papadam)'] } : {}),
+            });
+
+            selectedChutneys.forEach((chutney) => {
+              addItem({
+                name: chutney.name,
+                price: chutney.price,
+                categoryName: 'Sundries',
+                quantity: chutney.quantity,
+                selectedProtein: 'Papadam Chutney / Sauce',
+              });
+            });
+
+            const chutneySummary = hasChutneys
+              ? ` + ${selectedChutneys.map((c) => `${c.quantity}x ${c.name}`).join(', ')}`
+              : ' (Plain)';
+            setAddedNotice(`Added ${qty}x "${papadamModalDish.name}"${chutneySummary} to order`);
+            setTimeout(() => setAddedNotice(null), 3500);
           }
           closePapadamModal();
         }}
