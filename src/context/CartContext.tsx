@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { CartItem } from '../types';
+import { MAINTENANCE_MODE } from '../config/maintenance';
 
 interface CartContextType {
   items: CartItem[];
@@ -60,6 +61,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     item: Omit<CartItem, 'id' | 'quantity'> & { quantity?: number },
     openDrawer: boolean = false
   ) => {
+    if (MAINTENANCE_MODE) return;
     const qty = item.quantity || 1;
     const condKey = (item.selectedCondiments || []).slice().sort().join(',');
     const itemKey = `${item.name}-${item.selectedProtein || 'standard'}-${condKey}`;

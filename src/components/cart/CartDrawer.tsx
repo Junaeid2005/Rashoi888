@@ -15,9 +15,12 @@ import {
   Building,
   AlertCircle,
   ShieldAlert,
-  Lock
+  Lock,
+  Wrench,
+  Clock
 } from 'lucide-react';
 import { GoogleIcon } from '../auth/AuthIcons';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 interface CartDrawerProps {
   onOrderSuccess: (order: Order) => void;
@@ -84,6 +87,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
 
     // Prevent accidental submission from double-tap or event carryover right after clicking Proceed to Checkout
     if (!isCheckingOut || Date.now() - checkoutEnteredAtRef.current < 450) {
+      return;
+    }
+
+    if (MAINTENANCE_MODE) {
+      setFormError('Online food ordering and takeaway are temporarily unavailable while our website is under maintenance (Coming Soon).');
       return;
     }
 
@@ -228,6 +236,28 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
                 className="px-6 py-2.5 nav-burgundy-btn text-white font-semibold text-xs uppercase tracking-wider rounded-xl cursor-pointer"
               >
                 Close Basket
+              </button>
+            </div>
+          ) : MAINTENANCE_MODE ? (
+            <div className="py-20 text-center space-y-4 px-4">
+              <div className="w-16 h-16 rounded-full bg-[#291F24] border border-amber-400/60 flex items-center justify-center mx-auto text-amber-300 shadow-lg">
+                <Wrench className="w-7 h-7" />
+              </div>
+              <span className="inline-flex items-center space-x-1.5 text-[10px] tracking-widest text-amber-300 uppercase font-mono font-bold">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Coming Soon</span>
+              </span>
+              <h3 className="font-serif text-xl font-bold text-[#FFFFFF]">
+                Online Ordering Under Maintenance
+              </h3>
+              <p className="text-[#E2DDD7] text-xs leading-relaxed max-w-sm mx-auto">
+                Our website is currently under maintenance. You are welcome to browse our full menu — online food ordering and takeaway checkout are coming soon.
+              </p>
+              <button
+                onClick={handleCloseCart}
+                className="px-6 py-2.5 nav-burgundy-btn text-white font-semibold text-xs uppercase tracking-wider rounded-xl cursor-pointer"
+              >
+                Continue Browsing
               </button>
             </div>
           ) : items.length === 0 ? (
@@ -545,7 +575,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOrderSuccess }) => {
         </div>
 
         {/* Footer Totals & Checkout Button */}
-        {items.length > 0 && !isAdmin && (
+        {items.length > 0 && !isAdmin && !MAINTENANCE_MODE && (
           <div className="p-6 border-t border-[#A51C30]/25 bg-[#1A1418] space-y-3">
             
             <div className="space-y-1.5 text-xs">

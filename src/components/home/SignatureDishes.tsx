@@ -3,7 +3,8 @@ import { MenuItem } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { getDishVisualMeta } from '../../utils/menuImageResolver';
-import { Plus, Leaf, Sparkles, ArrowRight } from 'lucide-react';
+import { Plus, Leaf, Sparkles, ArrowRight, Clock } from 'lucide-react';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 interface SignatureDishesProps {
   dishes: MenuItem[];
@@ -104,7 +105,24 @@ export const SignatureDishes: React.FC<SignatureDishesProps> = ({ dishes, onView
 
                 {/* Card Action */}
                 <div className="px-6 pb-6 pt-2">
-                  {!isAdmin ? (
+                  {isAdmin || MAINTENANCE_MODE ? (
+                    <button
+                      onClick={onViewMenu}
+                      className="w-full py-2.5 px-4 bg-[#161013] border border-[#A51C30]/40 text-[#D4CDC5] hover:text-white rounded-xl text-xs font-medium transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+                    >
+                      {MAINTENANCE_MODE && !isAdmin ? (
+                        <>
+                          <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                          <span>Browse Menu • Ordering Coming Soon</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Preview in Menu</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-[#E23D5B]" />
+                        </>
+                      )}
+                    </button>
+                  ) : (
                     <button
                       onClick={() => {
                         if (dish.name.toLowerCase().includes('papad')) {
@@ -122,14 +140,6 @@ export const SignatureDishes: React.FC<SignatureDishesProps> = ({ dishes, onView
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add to Order</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={onViewMenu}
-                      className="w-full py-2.5 px-4 bg-[#161013] border border-[#A51C30]/40 text-[#D4CDC5] hover:text-white rounded-xl text-xs font-medium transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
-                    >
-                      <span>Preview in Menu</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-[#E23D5B]" />
                     </button>
                   )}
                 </div>

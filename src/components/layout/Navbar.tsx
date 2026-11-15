@@ -10,8 +10,11 @@ import {
   CalendarCheck,
   LogOut,
   ShieldAlert,
-  ChevronDown
+  ChevronDown,
+  Wrench,
+  Clock
 } from 'lucide-react';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 interface NavbarProps {
   currentView: string;
@@ -91,11 +94,30 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
           isScrolled
-            ? 'bg-[#070707]/95 backdrop-blur-md border-b border-[#800020]/30 shadow-2xl py-3.5'
-            : 'bg-gradient-to-b from-black/90 to-transparent py-5'
+            ? 'bg-[#070707]/95 backdrop-blur-md border-b border-[#800020]/30 shadow-2xl'
+            : 'bg-gradient-to-b from-black/95 to-black/75'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        {MAINTENANCE_MODE && (
+          <div className="bg-gradient-to-r from-[#4B0013] via-[#800020] to-[#4B0013] border-b border-amber-400/45 text-white px-3 py-2 text-center shadow-md">
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[11px] sm:text-xs font-medium">
+              <span className="inline-flex items-center space-x-1.5 font-bold uppercase tracking-wider text-amber-300">
+                <Wrench className="w-3.5 h-3.5 shrink-0" />
+                <span>Website Under Maintenance</span>
+              </span>
+              <span className="hidden sm:inline text-white/40">•</span>
+              <span className="text-[#F5EAE2]">
+                Browse our website &amp; menu freely — Online Ordering, Takeaway &amp; Table Booking are{' '}
+                <strong className="text-amber-300 font-semibold">Coming Soon</strong>.
+              </span>
+            </div>
+          </div>
+        )}
+        <div
+          className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between transition-all duration-300 ${
+            isScrolled ? 'py-3' : 'py-4'
+          }`}
+        >
           
           {/* Brand Logo */}
           <button
@@ -156,8 +178,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
 
-            {/* Cart Trigger - Hidden for Administrators */}
-            {!isAdmin && (
+            {/* Cart Trigger - Hidden for Administrators and during Maintenance */}
+            {!isAdmin && !MAINTENANCE_MODE && (
               <button
                 onClick={() => setIsCartOpen(true)}
                 aria-label="View Cart"
@@ -268,6 +290,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <ShieldAlert className="w-3.5 h-3.5 text-[#F5B8C3]" />
                 <span className="hidden sm:inline">Admin Dashboard</span>
                 <span className="sm:hidden">Admin</span>
+              </button>
+            ) : MAINTENANCE_MODE ? (
+              <button
+                onClick={onOpenBooking}
+                className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-lg font-semibold text-xs tracking-wider uppercase font-sans cursor-pointer transition-all duration-200 bg-[#24181D] hover:bg-[#312027] text-[#F5C6D0] border border-amber-400/40 flex items-center space-x-1.5 shadow-sm"
+                title="Online Table Booking is Coming Soon"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span className="hidden sm:inline">Booking • Coming Soon</span>
+                <span className="sm:hidden">Soon</span>
               </button>
             ) : (
               <button
@@ -397,6 +429,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <ShieldAlert className="w-4 h-4 text-[#F5B8C3]" />
                   <span>Go to Admin Dashboard</span>
+                </button>
+              ) : MAINTENANCE_MODE ? (
+                <button
+                  onClick={() => {
+                    closeMobileMenu();
+                    onOpenBooking();
+                  }}
+                  className="w-full py-3.5 bg-[#24181D] hover:bg-[#312027] border border-amber-400/40 font-semibold text-xs tracking-widest uppercase rounded-lg shadow-lg text-amber-200 flex items-center justify-center space-x-2 cursor-pointer"
+                >
+                  <Clock className="w-4 h-4 text-amber-300" />
+                  <span>Table Booking • Coming Soon</span>
                 </button>
               ) : (
                 <button

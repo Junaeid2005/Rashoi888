@@ -16,10 +16,13 @@ import {
   X,
   Utensils,
   Award,
-  Wine
+  Wine,
+  Wrench,
+  Clock
 } from 'lucide-react';
 import { PapadamChutneyModal, PapadamDishInfo, isPapadamDish } from './PapadamChutneyModal';
 import { ClassicDishModal, ClassicDishModalInfo } from './ClassicDishModal';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 interface MenuPageProps {
   categories: MenuCategory[];
@@ -322,6 +325,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
   };
 
   const handleInitiateAddDish = (dish: MenuItem, qty: number = 1) => {
+    if (MAINTENANCE_MODE) return;
     if (isPapadamDish(dish.name)) {
       openPapadamModal({
         name: dish.name,
@@ -361,6 +365,18 @@ export const MenuPage: React.FC<MenuPageProps> = ({
             Experience traditional culinary excellence with carefully sourced spices, fresh herbs, and artisanal clay-oven grilling in Windlesham, Surrey.
           </p>
         </div>
+
+        {/* ================= MAINTENANCE BROWSE-ONLY NOTICE ================= */}
+        {MAINTENANCE_MODE && (
+          <div className="mb-6 p-4 rounded-xl border border-amber-400/45 bg-gradient-to-r from-[#26121A] via-[#1C1216] to-[#26121A] flex items-center justify-center text-center text-xs sm:text-sm text-[#F5EAE2] max-w-4xl mx-auto shadow-lg">
+            <div className="flex items-center space-x-2.5">
+              <Wrench className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>
+                <strong className="text-amber-300">Website Under Maintenance:</strong> Browse our full menu &amp; prices freely. Online food ordering &amp; takeaway are <strong className="text-amber-300">Coming Soon</strong>.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* ================= ALLERGY BANNER ================= */}
         <div className="mb-8 p-4 rounded-xl border border-[#800020]/30 bg-[#121212] flex items-center justify-between text-xs sm:text-sm text-[#D4CDC5] max-w-4xl mx-auto shadow-md">
@@ -446,7 +462,11 @@ export const MenuPage: React.FC<MenuPageProps> = ({
         </div>
 
         {/* ================= CATEGORY TABS (STICKY / HORIZONTAL SCROLL) ================= */}
-        <div className="mb-10 sticky top-16 z-30 py-3 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-[#222222] bg-[#070707]/95 backdrop-blur-md">
+        <div
+          className={`mb-10 sticky ${
+            MAINTENANCE_MODE ? 'top-[104px] sm:top-[96px]' : 'top-16'
+          } z-30 py-3 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-[#222222] bg-[#070707]/95 backdrop-blur-md`}
+        >
           <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar scroll-smooth">
             <button
               onClick={() => setActiveCategoryId('all')}
@@ -608,7 +628,7 @@ export const MenuPage: React.FC<MenuPageProps> = ({
 
                         {/* Bottom Order Action */}
                         <div className="mt-4 pt-3.5 border-t border-[#222222] flex items-center justify-between gap-3">
-                          {isAdmin ? (
+                          {isAdmin || MAINTENANCE_MODE ? (
                             <button
                               type="button"
                               onClick={() =>
@@ -620,8 +640,17 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                               }
                               className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer bg-[#1A1A1A] hover:bg-[#252525] text-[#D4CDC5] hover:text-white border border-[#333333]"
                             >
-                              <Eye className="w-3.5 h-3.5 text-[#E23D5B]" />
-                              <span>View Options & Prices</span>
+                              {MAINTENANCE_MODE && !isAdmin ? (
+                                <>
+                                  <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                                  <span>View Options • Ordering Soon</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="w-3.5 h-3.5 text-[#E23D5B]" />
+                                  <span>View Options &amp; Prices</span>
+                                </>
+                              )}
                             </button>
                           ) : (
                             <button
@@ -727,13 +756,22 @@ export const MenuPage: React.FC<MenuPageProps> = ({
 
                       {/* Bottom Direct Order Action */}
                       <div className="mt-5 pt-3.5 border-t border-[#222222] flex items-center justify-between gap-3">
-                        {isAdmin ? (
+                        {isAdmin || MAINTENANCE_MODE ? (
                           <button
                             onClick={() => openDishModal({ item, meta: visualMeta })}
                             className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer bg-[#1A1A1A] hover:bg-[#252525] text-[#D4CDC5] hover:text-white border border-[#333333]"
                           >
-                            <Eye className="w-3.5 h-3.5 text-[#E23D5B]" />
-                            <span>View Recipe & Details</span>
+                            {MAINTENANCE_MODE && !isAdmin ? (
+                              <>
+                                <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                                <span>View Dish • Ordering Soon</span>
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="w-3.5 h-3.5 text-[#E23D5B]" />
+                                <span>View Recipe &amp; Details</span>
+                              </>
+                            )}
                           </button>
                         ) : cartQty > 0 ? (
                           <div className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-[#800020]/50 bg-[#1A1A1A] w-full justify-between">
@@ -851,6 +889,13 @@ export const MenuPage: React.FC<MenuPageProps> = ({
                 {isAdmin ? (
                   <div className="w-full py-3 px-4 rounded-xl border border-[#A51C30]/40 bg-[#1A1418] text-center text-xs text-[#E2DDD7]">
                     <span className="font-semibold text-white">Administrator Preview Mode:</span> Food ordering and checkout are disabled for admin accounts.
+                  </div>
+                ) : MAINTENANCE_MODE ? (
+                  <div className="w-full py-3 px-4 rounded-xl border border-amber-400/40 bg-[#1F1519] text-center text-xs text-[#E2DDD7] flex items-center justify-center space-x-2">
+                    <Clock className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>
+                      <strong className="text-amber-300">Ordering Coming Soon:</strong> Online food ordering &amp; takeaway are disabled while our website is under maintenance.
+                    </span>
                   </div>
                 ) : (
                   <>

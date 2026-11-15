@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { createReservation, isDateFullyBooked, getBookedTimeSlotsForDate } from '../../services/dbService';
 import { playUserSuccessChime, sendDesktopNotification } from '../../utils/audioNotification';
-import { Calendar, Clock, Users, User, Mail, Phone, MessageSquare, AlertCircle, CheckCircle2, ShieldAlert, Lock } from 'lucide-react';
+import { Calendar, Clock, Users, User, Mail, Phone, MessageSquare, AlertCircle, CheckCircle2, ShieldAlert, Lock, Wrench } from 'lucide-react';
 import { GoogleIcon } from '../auth/AuthIcons';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 interface ReservationSectionProps {
   initialDate?: string;
@@ -102,6 +103,11 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
     e.preventDefault();
     setDateError(null);
     setErrorMessage(null);
+
+    if (MAINTENANCE_MODE) {
+      setErrorMessage('Online table booking is coming soon while the website is under maintenance.');
+      return;
+    }
 
     if (!user) {
       signInWithGoogle();
@@ -214,6 +220,26 @@ export const ReservationSection: React.FC<ReservationSectionProps> = ({ initialD
                   <span>Open Admin Reservations</span>
                 </button>
               </div>
+            </div>
+          ) : MAINTENANCE_MODE ? (
+            /* Maintenance Mode: Table Booking Coming Soon */
+            <div className="py-10 text-center space-y-5">
+              <div className="w-16 h-16 rounded-full bg-[#291F24] border border-amber-400/60 flex items-center justify-center mx-auto text-amber-300 shadow-lg">
+                <Wrench className="w-8 h-8" />
+              </div>
+              <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full bg-[#291F24] border border-amber-400/40 text-amber-300 text-[11px] tracking-widest uppercase font-mono font-bold">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Coming Soon • Under Maintenance</span>
+              </div>
+              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#FFFFFF]">
+                Online Table Booking Coming Soon
+              </h3>
+              <p className="text-[#E2DDD7] text-sm max-w-lg mx-auto leading-relaxed font-normal">
+                Our website is currently under maintenance. You are welcome to browse our restaurant, atmosphere, and full menu — online table booking and takeaway ordering will be available again soon.
+              </p>
+              <p className="text-xs text-[#ABA29B]">
+                58 Updown Hill, Windlesham, Surrey • Lunch: 12:00 PM – 2:30 PM • Dinner: 5:30 PM – 11:00 PM
+              </p>
             </div>
           ) : bookingSuccess ? (
             <div className="p-8 text-center space-y-4">

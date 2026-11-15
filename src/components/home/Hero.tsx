@@ -1,8 +1,9 @@
 import React from 'react';
 import { HomepageSettings } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowRight, Sparkles, MapPin, Utensils, ShieldAlert } from 'lucide-react';
+import { ArrowRight, Sparkles, MapPin, Utensils, ShieldAlert, Clock } from 'lucide-react';
 import { resolveAssetUrl } from '../../utils/imagePath';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 interface HeroProps {
   settings: HomepageSettings;
@@ -93,23 +94,42 @@ export const Hero: React.FC<HeroProps> = ({
             </>
           ) : (
             <>
-              <button
-                onClick={onBookTable}
-                className="nav-burgundy-btn px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-xl w-full sm:w-auto"
-              >
-                <span>{settings.heroPrimaryBtnText || 'Book a Table'}</span>
-                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-transform" />
-              </button>
+              {MAINTENANCE_MODE ? (
+                <button
+                  onClick={onBookTable}
+                  className="px-7 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-xl w-full sm:w-auto bg-[#24181D]/95 hover:bg-[#312027] text-amber-200 border border-amber-400/45 backdrop-blur-sm"
+                >
+                  <Clock className="w-4 h-4 text-amber-300 shrink-0" />
+                  <span>Table Booking • Coming Soon</span>
+                </button>
+              ) : (
+                <button
+                  onClick={onBookTable}
+                  className="nav-burgundy-btn px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-xl w-full sm:w-auto"
+                >
+                  <span>{settings.heroPrimaryBtnText || 'Book a Table'}</span>
+                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-transform" />
+                </button>
+              )}
 
               <button
                 onClick={onExploreMenu}
-                className="px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center cursor-pointer bg-[#20181D]/80 hover:bg-[#2C2128] text-[#FFFFFF] border border-[#A51C30]/50 shadow-md backdrop-blur-sm w-full sm:w-auto"
+                className={
+                  MAINTENANCE_MODE
+                    ? 'nav-burgundy-btn px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer group shadow-xl w-full sm:w-auto'
+                    : 'px-8 py-4 font-semibold text-xs sm:text-sm tracking-widest uppercase rounded-xl transition-all flex items-center justify-center cursor-pointer bg-[#20181D]/80 hover:bg-[#2C2128] text-[#FFFFFF] border border-[#A51C30]/50 shadow-md backdrop-blur-sm w-full sm:w-auto'
+                }
               >
                 <span>
-                  {settings.heroSecondaryBtnText === 'Explore Our Menu'
-                    ? 'Explore Menu & Order'
-                    : (settings.heroSecondaryBtnText || 'Explore Menu & Order')}
+                  {MAINTENANCE_MODE
+                    ? 'Explore Our Menu'
+                    : settings.heroSecondaryBtnText === 'Explore Our Menu'
+                      ? 'Explore Menu & Order'
+                      : (settings.heroSecondaryBtnText || 'Explore Menu & Order')}
                 </span>
+                {MAINTENANCE_MODE && (
+                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1.5 transition-transform" />
+                )}
               </button>
             </>
           )}

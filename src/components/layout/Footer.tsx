@@ -2,6 +2,7 @@ import React from 'react';
 import { RestaurantInfo } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { MapPin, Phone, Mail, ArrowUp } from 'lucide-react';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 interface FooterProps {
   info: RestaurantInfo;
@@ -127,7 +128,7 @@ export const Footer: React.FC<FooterProps> = ({ info, onNavigate, onOpenBooking 
                     onClick={onOpenBooking}
                     className="text-[#E23D5B] hover:text-[#FFFFFF] transition-colors cursor-pointer font-semibold"
                   >
-                    Book a Table
+                    {MAINTENANCE_MODE ? 'Table Booking (Coming Soon)' : 'Book a Table'}
                   </button>
                 )}
               </li>

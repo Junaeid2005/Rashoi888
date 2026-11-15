@@ -1,7 +1,8 @@
 import React from 'react';
 import { HomepageSettings, RestaurantInfo } from '../../types';
-import { Sparkles, Utensils, Award } from 'lucide-react';
+import { Sparkles, Utensils, Award, Clock } from 'lucide-react';
 import { resolveAssetUrl } from '../../utils/imagePath';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 interface AboutPageProps {
   settings: HomepageSettings;
@@ -62,15 +63,29 @@ export const AboutPage: React.FC<AboutPageProps> = ({
             </div>
 
             <div className="pt-4 flex flex-wrap gap-4">
-              <button
-                onClick={onBookTable}
-                className="nav-burgundy-btn px-7 py-3.5 font-semibold text-xs tracking-widest uppercase rounded-xl shadow-lg cursor-pointer"
-              >
-                Book a Table
-              </button>
+              {MAINTENANCE_MODE ? (
+                <button
+                  onClick={onBookTable}
+                  className="px-7 py-3.5 border border-amber-400/45 bg-[#24181D] text-amber-200 hover:bg-[#312027] text-xs tracking-widest uppercase font-semibold rounded-xl transition-all cursor-pointer shadow flex items-center space-x-2"
+                >
+                  <Clock className="w-4 h-4 text-amber-300" />
+                  <span>Table Booking (Coming Soon)</span>
+                </button>
+              ) : (
+                <button
+                  onClick={onBookTable}
+                  className="nav-burgundy-btn px-7 py-3.5 font-semibold text-xs tracking-widest uppercase rounded-xl shadow-lg cursor-pointer"
+                >
+                  Book a Table
+                </button>
+              )}
               <button
                 onClick={onViewMenu}
-                className="px-7 py-3.5 border border-[#A51C30]/40 bg-[#1F181C] text-[#FFFFFF] hover:border-[#E23D5B] text-xs tracking-widest uppercase font-semibold rounded-xl transition-all cursor-pointer shadow"
+                className={
+                  MAINTENANCE_MODE
+                    ? 'nav-burgundy-btn px-7 py-3.5 font-semibold text-xs tracking-widest uppercase rounded-xl shadow-lg cursor-pointer'
+                    : 'px-7 py-3.5 border border-[#A51C30]/40 bg-[#1F181C] text-[#FFFFFF] hover:border-[#E23D5B] text-xs tracking-widest uppercase font-semibold rounded-xl transition-all cursor-pointer shadow'
+                }
               >
                 Explore Menu
               </button>

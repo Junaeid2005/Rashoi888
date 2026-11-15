@@ -2,12 +2,13 @@ import React from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { ShoppingBag, ArrowRight } from 'lucide-react';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 export const FloatingCartBar: React.FC = () => {
   const { itemCount, total, isCartOpen, setIsCartOpen } = useCart();
   const { isAdmin } = useAuth();
 
-  if (isAdmin || itemCount === 0 || isCartOpen) return null;
+  if (MAINTENANCE_MODE || isAdmin || itemCount === 0 || isCartOpen) return null;
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-md w-[92%] sm:w-auto animate-in fade-in slide-in-from-bottom-4 duration-300">

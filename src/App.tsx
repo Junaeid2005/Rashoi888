@@ -56,6 +56,7 @@ import {
   INITIAL_HOMEPAGE_SETTINGS,
 } from './data/initialData';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { MAINTENANCE_MODE } from './config/maintenance';
 
 function MainApp() {
   const { user, isAdmin, authError, clearAuthError } = useAuth();
@@ -372,7 +373,7 @@ function MainApp() {
       )}
 
       {/* Main Public Pages */}
-      <main className="flex-1">
+      <main className={MAINTENANCE_MODE ? 'flex-1 pt-12 sm:pt-10' : 'flex-1'}>
         {currentView === 'home' && (
           <>
             <Hero

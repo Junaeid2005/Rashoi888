@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ClassicDishPricing } from '../../types';
 import { DishVisualMeta } from '../../utils/menuImageResolver';
-import { X, Check, Plus, Minus, Wine, AlertCircle } from 'lucide-react';
+import { X, Check, Plus, Minus, Wine, AlertCircle, Clock } from 'lucide-react';
+import { MAINTENANCE_MODE } from '../../config/maintenance';
 
 export interface ClassicDishModalInfo {
   pricing: ClassicDishPricing;
@@ -173,27 +174,28 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
                 Select Options *
               </span>
               <span className="text-[11px] text-[#A59E98]">
-                Select 1 or more • adjust qty
+                {MAINTENANCE_MODE && !isAdmin ? 'Menu prices • Ordering Coming Soon' : 'Select 1 or more • adjust qty'}
               </span>
             </div>
 
             <div className="space-y-2">
               {options.map((option) => {
                 const isAvailable = option.price !== null;
+                const isInteractive = isAvailable && !(MAINTENANCE_MODE && !isAdmin);
                 const qty = optionQuantities[option.key] || 0;
-                const isSelected = isAvailable && qty > 0;
+                const isSelected = isInteractive && qty > 0;
 
                 return (
                   <div
                     key={option.key}
-                    role={isAvailable ? 'button' : undefined}
-                    tabIndex={isAvailable ? 0 : -1}
-                    aria-disabled={!isAvailable}
+                    role={isInteractive ? 'button' : undefined}
+                    tabIndex={isInteractive ? 0 : -1}
+                    aria-disabled={!isInteractive}
                     onClick={() => {
-                      if (isAvailable) toggleOption(option);
+                      if (isInteractive) toggleOption(option);
                     }}
                     onKeyDown={(e) => {
-                      if (isAvailable && (e.key === 'Enter' || e.key === ' ')) {
+                      if (isInteractive && (e.key === 'Enter' || e.key === ' ')) {
                         e.preventDefault();
                         toggleOption(option);
                       }
@@ -201,6 +203,8 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
                     className={`w-full p-3 sm:p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 text-left ${
                       !isAvailable
                         ? 'bg-[#100C0E] border-[#241C20] opacity-55 cursor-not-allowed'
+                        : !isInteractive
+                        ? 'bg-[#1A1418] border-[#2D2228]'
                         : isSelected
                         ? 'bg-gradient-to-r from-[#2B151F] to-[#1F141A] border-[#E23D5B] shadow-md shadow-[#800020]/20 cursor-pointer'
                         : 'bg-[#1A1418] border-[#2D2228] hover:border-[#800020]/65 hover:bg-[#20181D] cursor-pointer'
@@ -298,6 +302,13 @@ export const ClassicDishModal: React.FC<ClassicDishModalProps> = ({
           {isAdmin ? (
             <div className="w-full py-3 px-4 rounded-xl border border-[#A51C30]/40 bg-[#1A1418] text-center text-xs text-[#E2DDD7]">
               <span className="font-semibold text-white">Administrator Preview Mode:</span> Food ordering and checkout are disabled for admin accounts.
+            </div>
+          ) : MAINTENANCE_MODE ? (
+            <div className="w-full py-3 px-4 rounded-xl border border-amber-400/40 bg-[#1F1519] text-center text-xs text-[#E2DDD7] flex items-center justify-center space-x-2">
+              <Clock className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>
+                <strong className="text-amber-300">Ordering Coming Soon:</strong> Online food ordering &amp; takeaway are disabled during website maintenance.
+              </span>
             </div>
           ) : (
             <>
