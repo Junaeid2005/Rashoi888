@@ -159,14 +159,70 @@ export async function deleteCategory(id: string): Promise<void> {
 }
 
 // ================= MENU ITEMS =================
+const LEGACY_COMBINED_TO_SPLIT_IDS: Record<string, [string, string]> = {
+  'app-chicken-lamb-chat-puree': ['app-chicken-chat-puree', 'app-lamb-chat-puree'],
+  'app-meat-veg-samosa': ['app-meat-samosa', 'app-vegetable-samosa'],
+  'app-king-prawn-chat-puree': ['app-king-prawn-puree', 'app-king-prawn-chat-puree-item'],
+  'spec-rezala': ['spec-chicken-rezala', 'spec-lamb-rezala'],
+  'spec-ada-murgh': ['spec-ada-murgh-chicken', 'spec-ada-gohst'],
+  'spec-garlic-chicken-lamb': ['spec-garlic-chicken', 'spec-garlic-lamb'],
+  'spec-acheri': ['spec-acheri-chicken', 'spec-acheri-lamb'],
+  'spec-chilli-masala': ['spec-chilli-chicken-masala', 'spec-chilli-lamb-masala'],
+  'spec-makani': ['spec-chicken-makani', 'spec-lamb-makani'],
+  'balti-chicken-lamb': ['balti-chicken', 'balti-lamb'],
+  'bir-chicken-lamb': ['bir-chicken', 'bir-lamb'],
+  'bir-tikka': ['bir-chicken-tikka', 'bir-lamb-tikka'],
+  'veg-mixed': ['veg-mixed-bhajee', 'veg-mixed-curry'],
+  'rice-garlic-onion': ['rice-onion-fried', 'rice-garlic-fried'],
+};
+
 export async function getMenuItems(): Promise<MenuItem[]> {
   try {
     const q = query(collection(db, MENU_ITEMS_COL), orderBy('order', 'asc'));
     const snapshot = await getDocs(q);
     if (snapshot.empty) return INITIAL_MENU_ITEMS;
-    return snapshot.docs
-      .map(doc => doc.data() as MenuItem)
-      .filter(item => item.id !== 'sunday-special-deal' && item.categoryId !== 'sunday-special');
+
+    const rawItems = snapshot.docs.map(doc => doc.data() as MenuItem);
+    const byId = new Map<string, MenuItem>(rawItems.map((it) => [it.id, it]));
+    const initialById = new Map<string, MenuItem>(INITIAL_MENU_ITEMS.map((it) => [it.id, it]));
+
+    const filtered = rawItems.filter(
+      (item) =>
+        item.id !== 'sunday-special-deal' &&
+        item.categoryId !== 'sunday-special' &&
+        !(item.id in LEGACY_COMBINED_TO_SPLIT_IDS)
+    );
+
+    const existingFilteredIds = new Set(filtered.map((it) => it.id));
+
+    for (const [legacyId, [splitIdA, splitIdB]] of Object.entries(LEGACY_COMBINED_TO_SPLIT_IDS)) {
+      const legacyDoc = byId.get(legacyId);
+      const hasSplitA = existingFilteredIds.has(splitIdA);
+      const hasSplitB = existingFilteredIds.has(splitIdB);
+
+      // Inject split replacements whenever the legacy doc exists or neither split doc has been saved yet
+      if (legacyDoc || (!hasSplitA && !hasSplitB)) {
+        [splitIdA, splitIdB].forEach((sid) => {
+          if (!existingFilteredIds.has(sid)) {
+            const template = initialById.get(sid);
+            if (template) {
+              filtered.push({
+                ...template,
+                ...(legacyDoc
+                  ? {
+                      price: legacyDoc.price,
+                      isAvailable: legacyDoc.isAvailable,
+                    }
+                  : {}),
+              });
+              existingFilteredIds.add(sid);
+            }
+          }
+        });
+      }
+    }
+
+    return filtered.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
   } catch (error) {
     try {
       handleFirestoreError(error, OperationType.LIST, MENU_ITEMS_COL);
