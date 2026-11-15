@@ -7,4 +7,4 @@
  *
  * Set to false to re-enable ordering and table booking.
  */
-export const MAINTENANCE_MODE = false;
+export const MAINTENANCE_MODE = true;
