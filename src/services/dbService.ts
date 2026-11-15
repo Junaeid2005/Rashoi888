@@ -190,6 +190,7 @@ export async function getMenuItems(): Promise<MenuItem[]> {
       (item) =>
         item.id !== 'sunday-special-deal' &&
         item.categoryId !== 'sunday-special' &&
+        item.id !== 'sun-chutney' &&
         !(item.id in LEGACY_COMBINED_TO_SPLIT_IDS)
     );
 

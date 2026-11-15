@@ -181,7 +181,6 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
   { id: 'sun-papadam', name: 'Papadam', categoryId: 'sundries', categoryName: 'Sundries', price: 0.90, description: 'Crispy Indian lentil dough wafer roasted or fried. Served with your choice of Mango Chutney, Pickle Chutney, Onion Chutney, or Mint Sauce.', isVegetarian: true, isAvailable: true, order: 12 },
   { id: 'sun-chips', name: 'Chips', categoryId: 'sundries', categoryName: 'Sundries', price: 2.75, isVegetarian: true, isAvailable: true, order: 13 },
   { id: 'sun-raita', name: 'Raita (Plain yoghurt with cucumber or onions)', categoryId: 'sundries', categoryName: 'Sundries', price: 2.25, isVegetarian: true, isAvailable: true, order: 14 },
-  { id: 'sun-chutney', name: 'Chutney', categoryId: 'sundries', categoryName: 'Sundries', price: 0.90, isVegetarian: true, isAvailable: true, order: 15 },
 
   // Meat Thali
   { id: 'thali-meat', name: 'Meat Thali', categoryId: 'meat-thali', categoryName: 'Meat Thali', price: 16.95, description: 'Pieces of Tandoori Chicken, Sheek Kebab, Lamb Rogan Josh and Saag Bhajee with Pilau Rice, Plain Naan and Yoghurt.', isFeatured: true, isAvailable: true, order: 1 },
