@@ -190,7 +190,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <UserIcon className="w-4 h-4 text-[#A51C30]" />
                     )}
                     <span className="hidden md:inline max-w-[90px] truncate text-[#FFFFFF] font-medium">
-                      {user.displayName?.split(' ')[0] || 'Account'}
+                      {user.displayName?.split(' ')[0] || user.email?.split('@')[0] || 'Account'}
                     </span>
                     <ChevronDown className="w-3 h-3 text-[#A51C30]" />
                   </button>
@@ -202,7 +202,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <p className="text-[10px] uppercase tracking-wider text-[#9E9790] font-mono">
                           {isAdmin ? 'Signed in as Admin' : 'Signed in as'}
                         </p>
-                        <p className="text-sm font-semibold text-[#FFFFFF] truncate">{user.displayName || user.email}</p>
+                        <p className="text-sm font-semibold text-[#FFFFFF] truncate">
+                          {user.displayName || user.email || 'Signed-in Customer'}
+                        </p>
                       </div>
 
                       {isAdmin ? (
@@ -365,10 +367,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               {!user ? (
                 <button
                   onClick={() => {
-                    setMobileMenuOpen(false);
+                    closeMobileMenu();
                     signInWithGoogle();
                   }}
-                  className="w-full py-3 px-4 text-center text-xs tracking-wider uppercase font-semibold text-[#FFFFFF] border border-[#800020]/40 rounded-lg bg-[#141414] hover:bg-[#1a1a1a] transition-colors"
+                  className="w-full py-3 px-4 text-center text-xs tracking-wider uppercase font-semibold text-[#FFFFFF] border border-[#800020]/40 rounded-lg bg-[#141414] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
                 >
                   Sign in with Google
                 </button>

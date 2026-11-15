@@ -498,7 +498,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onReturnToSite, 
           <h2 className="font-serif text-2xl font-bold">Admin Authorization Required</h2>
           <p className="text-xs text-[#B8B1A7] leading-relaxed">
             This administration portal is restricted to authorized Rashoi restaurant managers only.
-            {user ? ` Currently signed in as ${user.email}.` : ' Please sign in with your authorized Google administrator credentials.'}
+            {user ? ` Currently signed in as ${user.email || user.uid}.` : ' Please sign in with your authorized administrator credentials.'}
           </p>
           <div className="pt-4 flex flex-col space-y-2">
             <button

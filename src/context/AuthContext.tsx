@@ -100,7 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthError('Sign-in popup was blocked by your browser. Please allow popups for this site.');
       } else if (err.code === 'auth/operation-not-allowed') {
         setAuthError('Google Sign-In is not enabled. Please enable Google provider in Firebase Console > Authentication > Sign-in method.');
-      } else if (err.code !== 'auth/popup-closed-by-user') {
+      } else if (
+        err.code !== 'auth/popup-closed-by-user' &&
+        err.code !== 'auth/cancelled-popup-request'
+      ) {
         setAuthError(err.message || 'Google sign-in failed. Please try again.');
       }
     }
